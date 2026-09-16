@@ -1,4 +1,6 @@
 "use client";
+import { useQueryClient } from "@tanstack/react-query";
+
 
 import {
   ChangeEvent,
@@ -13,7 +15,7 @@ import { useUploadHeadshot } from "@/hooks/use-upload-headshot";
 import { useCreateJob } from "@/hooks/use-thumbnail";
 import { subscribeToJobStatus } from "@/lib/job";
 import type { StyleId, ThumbnailBuilderProps } from "@/types/props";
-
+import {ThumbnailReadyPayload , ThumbnailFailedPayload} from '@/types/thumbnails'
 const styles = [
   ["bold_dramatic", "Bold & Dramatic", "#f36b45"],
   ["clean_minimal", "Clean & Minimal", "#61c6c2"],
@@ -40,25 +42,25 @@ const styles = [
 export default function ThumbnailBuilder({
   onJobStarted,
   onJobCreated,
-  onThumbnailReady,
-  onThumbnailFailed,
-  onJobComplete,
   onFailed,
-  onError,
-  setSelectedStyles,
-  selectedStyles,
   isGenerating,
+  setIsGenerating
 }: ThumbnailBuilderProps) {
   
+  const queryClient = useQueryClient() //* for adding thumbnails data to the ten stack query cache
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const stylePickerRef = useRef<HTMLDivElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [prompt, setPrompt] = useState("");
+
   const [isStyleMenuOpen, setIsStyleMenuOpen] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
+  const [selectedStyles, setSelectedStyles] = useState<StyleId[]>([]);
+
 
   // TanStack Query mutation hooks
   const { mutateAsync: uploadHeadshotAsync } = useUploadHeadshot();
@@ -78,6 +80,10 @@ export default function ThumbnailBuilder({
     return () => document.removeEventListener("mousedown", closeStyleMenu);
   }, []);
 
+  useEffect(() => {
+    if (isGenerating) setIsStyleMenuOpen(false);
+  }, [isGenerating]);
+
   function setSelectedFile(nextFile: File) {
     if (!nextFile.type.startsWith("image/")) return;
 
@@ -90,21 +96,25 @@ export default function ThumbnailBuilder({
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    if (isGenerating) return;
     const nextFile = event.target.files?.[0];
     if (nextFile) setSelectedFile(nextFile);
   }
 
   function handleDragOver(event: DragEvent<HTMLDivElement>) {
+    if (isGenerating) return;
     event.preventDefault();
     setIsDraggingFile(true);
   }
 
   function handleDragLeave(event: DragEvent<HTMLDivElement>) {
+    if (isGenerating) return;
     event.preventDefault();
     setIsDraggingFile(false);
   }
 
   function handleDrop(event: DragEvent<HTMLDivElement>) {
+    if (isGenerating) return;
     event.preventDefault();
     setIsDraggingFile(false);
 
@@ -113,6 +123,7 @@ export default function ThumbnailBuilder({
   }
 
   function removeFile(event: ReactMouseEvent<HTMLButtonElement>) {
+    if (isGenerating) return;
     event.stopPropagation();
     setFile(null);
     setShowValidation(false);
@@ -126,6 +137,7 @@ export default function ThumbnailBuilder({
 
   // sets the styles selected by user into the hook
   function toggleStyle(styleId: StyleId) {
+    if (isGenerating) return;
     setShowValidation(false);
     setSelectedStyles((current : StyleId[]) => {
       if (current.includes(styleId))
@@ -136,6 +148,7 @@ export default function ThumbnailBuilder({
   }
 
   function removeStyle(styleId: StyleId) {
+    if (isGenerating) return;
     setShowValidation(false);
     setSelectedStyles((current : StyleId[]) => current.filter((id : string) => id !== styleId));
   }
@@ -167,21 +180,62 @@ export default function ThumbnailBuilder({
       // 3. Subscribe to real-time status updates via SSE
       subscribeToJobStatus(jobResult.job_id, {
 
-        onThumbnailReady: (data) => onThumbnailReady(data),
+        //* when ever SSE API fucntion call any of these function we add its data into cache
 
-        onThumbnailFailed: (data) => onThumbnailFailed(data),
+        onThumbnailReady : (data : ThumbnailReadyPayload) => {
+           queryClient.setQueryData(
+            ['thumbnails' , jobResult.job_id],
+            (old:any) =>({
+              ...old,
+              ready : (old?.ready || []).some((t :ThumbnailReadyPayload ) => t.id == data.id) ?
+               old.ready : [...old.ready , data] // avoid duplicates
+            })
+           )
+        },
 
-        onJobComplete: (data) => onJobComplete(data.status),
+        onThumbnailFailed:  (data) => {
+           queryClient.setQueryData(
+            ['thumbnails' , jobResult.job_id],
+            (old:any) =>({
+              ...old,
+              ready : (old?.failed || []).some((t :ThumbnailReadyPayload ) => t.id == data.id) ?
+               old.failed : [...old.failed , data]
+            })
+           )
+        },
+
+        onJobComplete: (data) =>  setIsGenerating(false),
         
-        onFailed: (error) => onFailed(error.error),
+        onFailed: (error) =>{
+           queryClient.setQueryData(
+            ['thumbnails' , jobResult.job_id],
+            (old :any) =>({
+              ...old,
+              error:error
+            })
+           )
+        },
 
-        onError : () => onError()
+        onError : () =>  setIsGenerating(false)
       });
     } catch (err: unknown) {
+      setIsGenerating(false)
       onFailed(err instanceof Error ? err.message : "Generation failed");
     }
   }
 
+
+  // Cache = {
+  //      old == ['thumbnails', 'job_123']: {
+  //         ready: [
+  //           { id: "thumb_01", style_name: "bold_dramatic", imageKit_url: "https://...", ... },
+  //           { id: "thumb_02", style_name: "neon_gaming", imageKit_url: "https://...", ... }
+  //         ],
+  //         failed: [
+  //                   { id: "thumb_03", style_name: "tech_review", error_message: "something went wrong" }   ,
+   //                    ]
+  //       }
+  //     }
 
 
   return (
@@ -196,8 +250,13 @@ export default function ThumbnailBuilder({
           <div
             className={`upload-zone ${previewUrl ? "has-preview" : ""} ${
               isDraggingFile ? "dragging" : ""
-            } ${showValidation && !file ? "input-invalid" : ""}`}
-            onClick={() => fileInputRef.current?.click()}
+            } ${showValidation && !file ? "input-invalid" : ""} ${
+              isGenerating ? "is-disabled" : ""
+            }`}
+            aria-disabled={isGenerating}
+            onClick={() => {
+              if (!isGenerating) fileInputRef.current?.click();
+            }}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -218,6 +277,7 @@ export default function ThumbnailBuilder({
                   <button
                     className="remove-photo"
                     type="button"
+                    disabled={isGenerating}
                     onClick={removeFile}
                     aria-label="Remove selected image"
                   >
@@ -236,6 +296,7 @@ export default function ThumbnailBuilder({
             className="visually-hidden"
             type="file"
             accept="image/png,image/jpeg,image/webp,image/jpg"
+            disabled={isGenerating}
             onChange={handleFileChange}
           />
           {file && <p className="file-name">{file.name}</p>}
@@ -253,6 +314,7 @@ export default function ThumbnailBuilder({
               showValidation && !prompt.trim() ? "input-invalid" : ""
             }`}
             value={prompt}
+            disabled={isGenerating}
             onChange={(event) => {
               setPrompt(event.target.value);
               if (event.target.value.trim()) setShowValidation(false);
@@ -273,6 +335,7 @@ export default function ThumbnailBuilder({
                 isStyleMenuOpen ? "open" : ""
               } ${showValidation && selectedStyles.length === 0 ? "input-invalid" : ""}`}
               type="button"
+              disabled={isGenerating}
               onClick={() => setIsStyleMenuOpen((open) => !open)}
               aria-expanded={isStyleMenuOpen}
               aria-haspopup="listbox"
@@ -298,7 +361,7 @@ export default function ThumbnailBuilder({
                       type="button"
                       role="option"
                       aria-selected={selected}
-                      disabled={disabled}
+                      disabled={disabled || isGenerating}
                       key={id}
                       className={`style-option  ${selected ? "selected" : ""}`}
                       onClick={() => toggleStyle(id as StyleId)}
@@ -334,6 +397,7 @@ export default function ThumbnailBuilder({
                   <span>{style[1]}</span>
                   <button
                     type="button"
+                    disabled={isGenerating}
                     onClick={() => removeStyle(style[0] as StyleId)}
                     aria-label={`Remove ${style[1]}`}
                   >
@@ -353,6 +417,12 @@ export default function ThumbnailBuilder({
           )}
         </div>
       </div>
+
+      {isGenerating && (
+        <p className="builder-lock-message font-mono" role="status">
+          Your thumbnails are generating. Editing is temporarily unavailable.
+        </p>
+      )}
 
       {/* Generate Button */}
       <button

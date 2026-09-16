@@ -30,7 +30,7 @@ class Thumbnails(SQLModel , table=True):
         nullable=False
     )
     imageKit_url : str = Field(default=None , nullable=False)
-    imageKit_file_id : str = Field(default=None , nullable=False)
+    imageKit_file_id : str = Field(default=None , nullable=True)
     created_at: datetime = Field(default_factory=_now , nullable=False)
     
     job : Optional["Job"] = Relationship(back_populates="thumbnails")

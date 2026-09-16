@@ -26,13 +26,8 @@ export type StyleId =
 export interface ThumbnailBuilderProps {
   onJobStarted: (styles: StyleId[]) => void;
   onJobCreated: (jobId: string) => void;
-  onThumbnailReady: (data: ThumbnailReadyPayload) => void;
-  onThumbnailFailed: (data: ThumbnailFailedPayload) => void;
-  onJobComplete: (data : string) => void;
   onFailed: (error: string) => void;
-  onError : () => void;
-  setSelectedStyles: Dispatch<SetStateAction<StyleId[]>>;
-  selectedStyles : StyleId[]
+  setIsGenerating: Dispatch<SetStateAction<boolean>>;
   isGenerating: boolean;
 }
 
@@ -40,6 +35,7 @@ export interface ThumbnailBuilderProps {
 export interface ThumbnailResultsProps {
   isGenerating: boolean;
   resultStyles: StyleId[];
+  jobId : string | null
   thumbnails: ThumbnailReadyPayload[];
   failedThumbnails: ThumbnailFailedPayload[];
   generationError: string;

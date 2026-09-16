@@ -5,20 +5,23 @@ import { ThumbnailSkeleton } from "../ui/thumbnail-skeleton";
 export default function ThumbnailResults({
   isGenerating,
   resultStyles,
+
   thumbnails ,
   failedThumbnails,
   generationError,
+
   onRetry,
   onRetryAll,
   onDelete,
 }: ThumbnailResultsProps) {
   
+
   const showResults =
     isGenerating ||
     thumbnails.length > 0 ||
     failedThumbnails.length > 0 ||
     Boolean(generationError);
-
+  console.log(failedThumbnails.length)
   return (
     <>
       {showResults && (
@@ -150,7 +153,7 @@ export default function ThumbnailResults({
 
               return (
                 <div className="thumbnail-result-slot" key={styleId}>
-                  <ThumbnailSkeleton prompt={styleId} isloading={isGenerating} duration={50000}  />
+                  <ThumbnailSkeleton prompt={styleId} isloading={isGenerating} duration={45000}  />
                 </div>
               );
             })}
