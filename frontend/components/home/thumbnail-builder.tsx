@@ -42,9 +42,8 @@ const styles = [
 export default function ThumbnailBuilder({
   onJobStarted,
   onJobCreated,
-  onFailed,
+  onFailedOrSucess,
   isGenerating,
-  setIsGenerating
 }: ThumbnailBuilderProps) {
   
   const queryClient = useQueryClient() //* for adding thumbnails data to the ten stack query cache
@@ -175,7 +174,9 @@ export default function ThumbnailBuilder({
         num_of_thumbnails: selectedStyles.length,
       });
       
+      sessionStorage.setItem("jobId", jobResult.job_id);
       onJobCreated(jobResult.job_id);
+     
 
       // 3. Subscribe to real-time status updates via SSE
       subscribeToJobStatus(jobResult.job_id, {
@@ -183,30 +184,35 @@ export default function ThumbnailBuilder({
         //* when ever SSE API fucntion call any of these function we add its data into cache
 
         onThumbnailReady : (data : ThumbnailReadyPayload) => {
-           queryClient.setQueryData(
+           queryClient.setQueryData( // change cache data trigger due to which where this data is being used react re-renders that comp
             ['thumbnails' , jobResult.job_id],
             (old:any) =>({
               ...old,
-              ready : (old?.ready || []).some((t :ThumbnailReadyPayload ) => t.id == data.id) ?
-               old.ready : [...old.ready , data] // avoid duplicates
+              thumbnails: [                                                                                                    
+          ...(old?.thumbnails || []).filter((t: any) => t.id !== data.id),                                               
+            data   // ← { id, style_name, status: "completed", imageKit_url, variants }                                    
+            ]                            
             })
            )
         },
 
-        onThumbnailFailed:  (data) => {
+        onThumbnailFailed:  (data :  ThumbnailFailedPayload) => {
            queryClient.setQueryData(
             ['thumbnails' , jobResult.job_id],
             (old:any) =>({
               ...old,
-              ready : (old?.failed || []).some((t :ThumbnailReadyPayload ) => t.id == data.id) ?
-               old.failed : [...old.failed , data]
+               thumbnails: [                                                                                                    
+           ...(old?.thumbnails || []).filter((t: any) => t.id !== data.id),                                               
+             data   // ← { id, style_name, status: "failed", error_message }                                                
+            ]     
             })
            )
         },
 
-        onJobComplete: (data) =>  setIsGenerating(false),
+        onJobComplete: () => onFailedOrSucess(),
         
-        onFailed: (error) =>{
+        onFailed : (error) =>{
+           onFailedOrSucess(error.error) // set is generating to false             
            queryClient.setQueryData(
             ['thumbnails' , jobResult.job_id],
             (old :any) =>({
@@ -216,26 +222,14 @@ export default function ThumbnailBuilder({
            )
         },
 
-        onError : () =>  setIsGenerating(false)
+        onError : () => onFailedOrSucess()
       });
     } catch (err: unknown) {
-      setIsGenerating(false)
-      onFailed(err instanceof Error ? err.message : "Generation failed");
+      onFailedOrSucess(err instanceof Error ? err.message : "Generation failed");
     }
   }
 
 
-  // Cache = {
-  //      old == ['thumbnails', 'job_123']: {
-  //         ready: [
-  //           { id: "thumb_01", style_name: "bold_dramatic", imageKit_url: "https://...", ... },
-  //           { id: "thumb_02", style_name: "neon_gaming", imageKit_url: "https://...", ... }
-  //         ],
-  //         failed: [
-  //                   { id: "thumb_03", style_name: "tech_review", error_message: "something went wrong" }   ,
-   //                    ]
-  //       }
-  //     }
 
 
   return (

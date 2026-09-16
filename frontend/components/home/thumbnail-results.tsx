@@ -1,27 +1,33 @@
 import type { ThumbnailResultsProps } from "@/types/props";
 import { ArrowUpRight, RotateCcw, Trash2 } from "lucide-react";
 import { ThumbnailSkeleton } from "../ui/thumbnail-skeleton";
-
+import { useJobThumbnails } from "@/hooks/use-thumbnail";
+import {  ThumbnailResponse} from "@/types/thumbnails";
 export default function ThumbnailResults({
   isGenerating,
   resultStyles,
-
-  thumbnails ,
-  failedThumbnails,
   generationError,
-
+  jobId,
   onRetry,
   onRetryAll,
   onDelete,
 }: ThumbnailResultsProps) {
-  
+ 
+  //  cc4887b0-d5e2-4235-8135-4094e0cc0169
+
+  const {data} = useJobThumbnails(jobId ?? "", isGenerating)
+  const thumbnails :  ThumbnailResponse[]  = data?.ready || [];                                                
+  const failedThumbnails :  ThumbnailResponse[] = data?.failed || [];  
+  const stylesToRender = resultStyles.length > 0 ? resultStyles
+  : [...(data?.ready || []), ...(data?.failed || [])].map(t => t.style_name);                                       
+  // const generationError : string = data?.error|| "";    // string   
 
   const showResults =
     isGenerating ||
     thumbnails.length > 0 ||
     failedThumbnails.length > 0 ||
     Boolean(generationError);
-  console.log(failedThumbnails.length)
+
   return (
     <>
       {showResults && (
@@ -62,8 +68,8 @@ export default function ThumbnailResults({
           {/* Unified Grid: Loops over selectedStyles so each slot stays in place */}
           <div className="thumbnail-grid">
 
-            {resultStyles.map((styleId) => {
-              const friendlyStyleName = styleId.replace(/_/g, " ");
+            {stylesToRender?.map((styleId) => {
+              const friendlyStyleName = styleId?.replace(/_/g, " ");
 
               // 1. Success State
               const ready = thumbnails.find((t) => t.style_name === styleId);
@@ -118,7 +124,7 @@ export default function ThumbnailResults({
                       {onDelete && (
                         <button
                           type="button"
-                          onClick={() => onDelete(styleId)}
+                          onClick={() => onDelete(styleId!)}
                           className="failed-thumbnail-dismiss"
                           aria-label={`Delete failed ${friendlyStyleName} thumbnail`}
                           title="Remove failed thumbnail"
@@ -135,7 +141,7 @@ export default function ThumbnailResults({
                       {onRetry && (
                         <button
                           type="button"
-                          onClick={() => onRetry(styleId)}
+                          onClick={() => onRetry(styleId!)}
                           className="failed-thumbnail-retry font-mono"
                           aria-label={`Retry ${friendlyStyleName} thumbnail`}
                         >
@@ -153,7 +159,7 @@ export default function ThumbnailResults({
 
               return (
                 <div className="thumbnail-result-slot" key={styleId}>
-                  <ThumbnailSkeleton prompt={styleId} isloading={isGenerating} duration={45000}  />
+                  <ThumbnailSkeleton prompt={styleId!} isloading={isGenerating} duration={45000}  />
                 </div>
               );
             })}

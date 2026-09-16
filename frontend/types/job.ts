@@ -1,3 +1,4 @@
+import { ThumbnailResponse } from "./thumbnails"
 
 interface CreateJob {
 user_prompt : string,
@@ -16,4 +17,15 @@ interface RetryThumbnailResponse {
 	status: string;
 }
 
-export type { CreateJob, CreateJobResponse, RetryThumbnailResponse };
+
+interface JobResponse {
+  id: string;
+  user_prompt: string;
+  status: string;
+  num_of_thumbnails: number;
+  headshot_url: string;
+  created_at: string;
+  error_message?: string;
+  thumbnails: ThumbnailResponse[];
+}
+export type { CreateJob, CreateJobResponse, RetryThumbnailResponse , JobResponse };

@@ -1,4 +1,4 @@
-import type { ThumbnailReadyPayload, ThumbnailFailedPayload } from "./thumbnails";
+
 import type { Dispatch, SetStateAction } from "react";
 export type StyleId =
   | "bold_dramatic"
@@ -26,8 +26,7 @@ export type StyleId =
 export interface ThumbnailBuilderProps {
   onJobStarted: (styles: StyleId[]) => void;
   onJobCreated: (jobId: string) => void;
-  onFailed: (error: string) => void;
-  setIsGenerating: Dispatch<SetStateAction<boolean>>;
+  onFailedOrSucess: (error?: string) => void;
   isGenerating: boolean;
 }
 
@@ -36,8 +35,6 @@ export interface ThumbnailResultsProps {
   isGenerating: boolean;
   resultStyles: StyleId[];
   jobId : string | null
-  thumbnails: ThumbnailReadyPayload[];
-  failedThumbnails: ThumbnailFailedPayload[];
   generationError: string;
   onRetry?: (styleId: string) => void;
   onRetryAll?: () => void;

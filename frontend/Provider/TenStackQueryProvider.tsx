@@ -1,4 +1,6 @@
 'use client'
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+
 
 import {
   QueryClient,
@@ -12,6 +14,8 @@ const TenStackQueryProvider = ({ children }: { children: ReactNode }) => {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
+        <ReactQueryDevtools initialIsOpen={false} />
+
     </QueryClientProvider>
   )
 }

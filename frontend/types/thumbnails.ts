@@ -4,7 +4,7 @@ interface Variants {
     [key: string]: string;
 }
 
-export interface ThumbnailReadyPayload {
+interface ThumbnailReadyPayload {
     id: string;
     style_name: string;
     status: string;
@@ -12,7 +12,7 @@ export interface ThumbnailReadyPayload {
     variants: Variants;
 }
 
-export interface ThumbnailFailedPayload {
+interface ThumbnailFailedPayload {
     id : string;
     style_name: string;
     status : string;
@@ -20,23 +20,39 @@ export interface ThumbnailFailedPayload {
 }
 
 
-interface JobCompletedPayload {
-    job_id : string,
-    status : string,
-    
+
+interface ThumbnailResponse {
+  id: string;
+  job_id: string;
+  style_name?: string;
+  status: string;
+  imageKit_url?: string;
+  error_message?: string;
+  variants?: Record<string, string>;
+  created_at: string;
 }
+
+
 
 interface FailedPayload{
  error : string
 }
 
 // Create an interface for the destructured object
-export interface JobEventHandlers {
+interface JobEventHandlers {
     onThumbnailReady : (data: ThumbnailReadyPayload) => void;
     onThumbnailFailed : (error: ThumbnailFailedPayload) => void;
-    onJobComplete : (data : JobCompletedPayload) => void;
+    onJobComplete : () => void;
     onFailed : (error: FailedPayload) => void;
    onError  : () => void;
 }
 
+export type {
+    Variants,
+    ThumbnailReadyPayload,
+    ThumbnailFailedPayload,
+    ThumbnailResponse,
+    FailedPayload,
+    JobEventHandlers,
+};
 

@@ -1,5 +1,5 @@
 import { FETCH_API_METHOD } from "./client";
-import { CreateJob, CreateJobResponse, RetryThumbnailResponse } from '../types/job'
+import { CreateJob, CreateJobResponse, RetryThumbnailResponse  , JobResponse} from '../types/job'
 import {SSE_EVENTS} from '../types/SSE_Events'
 import {JobEventHandlers } from '../types/thumbnails'
 
@@ -17,7 +17,7 @@ export async function createJob(data:CreateJob){
 
 // get all thumbnails for a job id
 export async function get_all_thumbnails(job_id : string){
-    return await FETCH_API_METHOD(`/job/${job_id}` , {
+    return await FETCH_API_METHOD<JobResponse>(`/job/${job_id}` , {
         method : "GET",
     })
 }
@@ -76,8 +76,8 @@ export function subscribeToJobStatus(
     })
 
     es.addEventListener(SSE_EVENTS.JOB_COMPLETE ,(event: MessageEvent<string>)=>{
-        console.log("JOB EVENT COMPLETION DATA RECEIVED : ", event )
-        onJobComplete(JSON.parse(event.data))
+        console.log("JOB EVENT COMPLETION DATA RECEIVED : ", event  , "data :" , JSON.parse(event.data))
+        onJobComplete()
         es.close()
     })
 

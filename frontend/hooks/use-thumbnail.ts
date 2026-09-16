@@ -12,7 +12,7 @@ export function useCreateJob(){
   
 }
 
-export function useJobThumbnails(jobId:string){
+export function useJobThumbnails(jobId:string , isGenerating : boolean = true){
     return useQuery({
         // 1. queryKey: Unique key to store & identify this data in TanStack cache                                              
         queryKey : ['thumbnails' , jobId],
@@ -21,10 +21,60 @@ export function useJobThumbnails(jobId:string){
         queryFn : () => get_all_thumbnails(jobId) ,
         
         // 3. enabled: ONLY run this query if jobId exists (don't fetch if jobId is null/empty)    
-        enabled: !!jobId,       
+        enabled: !!jobId && !isGenerating,       
+
+        //4  how long data will remain cached 
+        // prevents time-based staleness, but inactive cache data can still be removed after the default gcTime of five minutes.
+        // If you also want inactive cache data to remain in memory:
+        staleTime : Infinity,
+        gcTime: Infinity,
+        
+        //5
+        refetchOnWindowFocus: false,
+
+        //6
+        refetchOnReconnect: false,
+
+      //7 It transforms the data returned by the backend before your component receives it.
+      select: (data) => ({
+      ...data,
+      ready: data?.thumbnails.filter(t => t.status === "generated"),
+      failed: data?.thumbnails.filter(t => t.status === "failed"),
+    }),
 
     })
 }
+
+//* 4 Explanation
+
+//* suppose backend return
+// data = {
+//   id: "job-123",
+//   status: "processing",
+//   thumbnails: [
+//     { id: "1", status: "generated" },
+//     { id: "2", status: "failed" },
+//     { id: "3", status: "generated" },
+//   ],
+// };
+
+//* converted
+// {
+//   id: "job-123",
+//   status: "processing",
+//   thumbnails: [
+//     { id: "1", status: "generated" },
+//     { id: "2", status: "failed" },
+//     { id: "3", status: "generated" }
+//   ],
+//   ready: [
+//     { id: "1", status: "generated" },
+//     { id: "3", status: "generated" }
+//   ],
+//   failed: [
+//     { id: "2", status: "failed" }
+//   ]
+// }
 
 
 export function useRetryFailedThumbnails(){
