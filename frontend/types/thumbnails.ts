@@ -38,13 +38,21 @@ interface FailedPayload{
  error : string
 }
 
+interface JobCompletedPayload{
+job_id : string,
+status : string,
+error_message : string
+
+
+}
+
 // Create an interface for the destructured object
 interface JobEventHandlers {
     onThumbnailReady : (data: ThumbnailReadyPayload) => void;
     onThumbnailFailed : (error: ThumbnailFailedPayload) => void;
-    onJobComplete : () => void;
+    onJobComplete : (data : JobCompletedPayload) => void;
     onFailed : (error: FailedPayload) => void;
-   onError  : () => void;
+    onError  : (error : FailedPayload) => void;
 }
 
 export type {

@@ -4,8 +4,9 @@ import { useState } from "react";
 import ThumbnailBuilder from "./thumbnail-builder";
 import ThumbnailResults from "./thumbnail-results";
 import type { StyleId } from "@/types/props";
-import  {useRetryFailedThumbnails , useRetryAllFailedThumbnails} from '@/hooks/use-thumbnail'
+import  {useRetryFailedThumbnail , useRetryAllFailedThumbnails} from '@/hooks/use-thumbnail'
 import { useCallback } from "react";
+import { useJobThumbnails } from "@/hooks/use-thumbnail";
 
 export default function HomeClient() {
   
@@ -13,14 +14,19 @@ export default function HomeClient() {
   const [resultStyles, setResultStyles] = useState<StyleId[]>([]);  // ['bold_dramatic' ,'music_concert']
   const [jobId, setJobId] = useState<string | null>(() => typeof window !== "undefined" ? sessionStorage.getItem("jobId"): null);
   const [generationError, setGenerationError] = useState("")
+
   // Ten stack query hooks
-    const {mutateAsync : retryFailedThumbnailsAsync} = useRetryFailedThumbnails()
-    const {mutateAsync : retryAllFailedThumbnailsAsync} = useRetryAllFailedThumbnails()
+  const {data} = useJobThumbnails(jobId ?? "", isGenerating)
+  console.log("data" , data)
+
+  const {mutateAsync : retryFailedThumbnailsAsync} = useRetryFailedThumbnail()
+  const {mutateAsync : retryAllFailedThumbnailsAsync} = useRetryAllFailedThumbnails()
  
 
   function handleJobStarted(styles: StyleId[]) {
     setIsGenerating(true);
     setResultStyles(styles);
+    setGenerationError("");
   }
 
   function handleFailerAndSucess(errorMessage?: string) {
@@ -101,6 +107,7 @@ export default function HomeClient() {
 
       {/* Main Form Builder Component */}
       <ThumbnailBuilder
+        data={data}
         onJobStarted={handleJobStarted}
         onJobCreated={setJobId}
         onFailedOrSucess={handleFailerAndSucess}
@@ -109,6 +116,7 @@ export default function HomeClient() {
 
       {/* Bottom Results Component (Appears when generating or when thumbnails exist) */}
       <ThumbnailResults
+        data={data}
         isGenerating={isGenerating}
         resultStyles={resultStyles}
         jobId={jobId}

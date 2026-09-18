@@ -1,10 +1,11 @@
 import { useMutation , useQuery } from "@tanstack/react-query";
 import {createJob , get_all_thumbnails , retryAllFailedThumbnails ,retryFailedThumbnail , delete_thumbnail ,batch_delete_thumbnails} from "@/lib/job"
-import {CreateJob } from "@/types/job"
-
+import {CreateJob, JobQueryData } from "@/types/job"
+import { ThumbnailResponse } from "@/types/thumbnails";
 
 // ten stack query used for testing in this project only !
 
+//* create thumbnail as job
 export function useCreateJob(){
    return useMutation({
          mutationFn : (data : CreateJob) => createJob(data)
@@ -12,6 +13,7 @@ export function useCreateJob(){
   
 }
 
+//* fetch thumbails for a job (runs on refresh only)
 export function useJobThumbnails(jobId:string , isGenerating : boolean = true){
     return useQuery({
         // 1. queryKey: Unique key to store & identify this data in TanStack cache                                              
@@ -36,10 +38,10 @@ export function useJobThumbnails(jobId:string , isGenerating : boolean = true){
         refetchOnReconnect: false,
 
       //7 It transforms the data returned by the backend before your component receives it.
-      select: (data) => ({
+      select: (data): JobQueryData => ({
       ...data,
-      ready: data?.thumbnails.filter(t => t.status === "generated"),
-      failed: data?.thumbnails.filter(t => t.status === "failed"),
+      ready: data?.thumbnails.filter((t:ThumbnailResponse) => t.status === "generated"),
+      failed: data?.thumbnails.filter((t:ThumbnailResponse) => t.status === "failed"),
     }),
 
     })
@@ -77,9 +79,13 @@ export function useJobThumbnails(jobId:string , isGenerating : boolean = true){
 // }
 
 
-export function useRetryFailedThumbnails(){
+
+
+//* retry generations for failed thumbnails
+
+export function useRetryFailedThumbnail(){
   return useMutation({
-    mutationFn : (id:string) => retryFailedThumbnail(id)
+    mutationFn : (thumbnail_id:string) => retryFailedThumbnail(thumbnail_id)
   })
 }
 
@@ -89,16 +95,25 @@ export function useRetryAllFailedThumbnails(){
   })
 
 }
+
+//* delete thumbnails
 export function useDeleteThumbnail(){
   return useMutation({
     mutationFn : (thumbnail_id : string) => delete_thumbnail(thumbnail_id)
   })
 }
 
+export function useDeleteAllThumbnails(){
+  return useMutation({
+    mutationFn : (thumbnail_ids : string[]) => batch_delete_thumbnails(thumbnail_ids)
+  })
+}
+
+
 
 
                                                                                                                             
-    //? Line-by-Line Breakdown for useQuery                                                                                     
+//? Line-by-Line Breakdown for useQuery                                                                                     
                                                                                                                                 
     //* 1. import { useQuery } from '@tanstack/react-query'                                                                     
     // useQuery is TanStack Query's hook for fetching/reading data from the server (like GET requests).                         

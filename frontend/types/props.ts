@@ -1,5 +1,6 @@
 
-import type { Dispatch, SetStateAction } from "react";
+import { JobResponse } from "./job";
+import { JobQueryData } from "./job";
 export type StyleId =
   | "bold_dramatic"
   | "clean_minimal"
@@ -28,6 +29,7 @@ export interface ThumbnailBuilderProps {
   onJobCreated: (jobId: string) => void;
   onFailedOrSucess: (error?: string) => void;
   isGenerating: boolean;
+  data?: JobQueryData
 }
 
 
@@ -39,4 +41,5 @@ export interface ThumbnailResultsProps {
   onRetry?: (styleId: string) => void;
   onRetryAll?: () => void;
   onDelete?: (styleId: string) => void;
+  data?: JobQueryData
 }

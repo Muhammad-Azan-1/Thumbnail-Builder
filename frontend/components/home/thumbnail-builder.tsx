@@ -1,7 +1,5 @@
 "use client";
 import { useQueryClient } from "@tanstack/react-query";
-
-
 import {
   ChangeEvent,
   DragEvent,
@@ -15,7 +13,8 @@ import { useUploadHeadshot } from "@/hooks/use-upload-headshot";
 import { useCreateJob } from "@/hooks/use-thumbnail";
 import { subscribeToJobStatus } from "@/lib/job";
 import type { StyleId, ThumbnailBuilderProps } from "@/types/props";
-import {ThumbnailReadyPayload , ThumbnailFailedPayload} from '@/types/thumbnails'
+import {ThumbnailReadyPayload , ThumbnailFailedPayload , FailedPayload, ThumbnailResponse} from '@/types/thumbnails'
+
 const styles = [
   ["bold_dramatic", "Bold & Dramatic", "#f36b45"],
   ["clean_minimal", "Clean & Minimal", "#61c6c2"],
@@ -44,8 +43,9 @@ export default function ThumbnailBuilder({
   onJobCreated,
   onFailedOrSucess,
   isGenerating,
+  data,
 }: ThumbnailBuilderProps) {
-  
+
   const queryClient = useQueryClient() //* for adding thumbnails data to the ten stack query cache
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -60,6 +60,22 @@ export default function ThumbnailBuilder({
   const [showValidation, setShowValidation] = useState(false);
   const [selectedStyles, setSelectedStyles] = useState<StyleId[]>([]);
 
+
+  //* on full page refresh or when ever the jobData changes
+
+  useEffect(()=>{
+    if(!data) return
+
+    setSelectedStyles(
+      data.thumbnails
+        .map((thumbnail: ThumbnailResponse) => thumbnail.style_name)
+        .filter((style): style is StyleId => Boolean(style))
+    )
+    setPrompt(data.user_prompt ?? "")
+    setPreviewUrl(data.headshot_url ?? "")
+    
+  },[data])
+  
 
   // TanStack Query mutation hooks
   const { mutateAsync: uploadHeadshotAsync } = useUploadHeadshot();
@@ -159,9 +175,7 @@ export default function ThumbnailBuilder({
       setShowValidation(true);
       return;
     }
-
     onJobStarted(selectedStyles);
-
     try {
       // 1. Upload headshot using TanStack Query mutation
       const uploadResult = await uploadHeadshotAsync(file);
@@ -203,28 +217,28 @@ export default function ThumbnailBuilder({
               ...old,
                thumbnails: [                                                                                                    
            ...(old?.thumbnails || []).filter((t: any) => t.id !== data.id),                                               
-             data   // ← { id, style_name, status: "failed", error_message }                                                
+               data   // ← { id, style_name, status: "failed", error_message }                                                
             ]     
             })
            )
         },
 
-        onJobComplete: () => onFailedOrSucess(),
+        onJobComplete: (data) => {
+        if (data.status === "failed") {
+          onFailedOrSucess(data.error_message || "All thumbnails failed");
+        } else {
+          onFailedOrSucess();
+      }
+        },
         
-        onFailed : (error) =>{
+        onFailed : (error : FailedPayload) =>{
            onFailedOrSucess(error.error) // set is generating to false             
-           queryClient.setQueryData(
-            ['thumbnails' , jobResult.job_id],
-            (old :any) =>({
-              ...old,
-              error:error
-            })
-           )
         },
 
-        onError : () => onFailedOrSucess()
+        onError : (error : FailedPayload) => onFailedOrSucess(error.error)
       });
     } catch (err: unknown) {
+
       onFailedOrSucess(err instanceof Error ? err.message : "Generation failed");
     }
   }

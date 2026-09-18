@@ -9,7 +9,7 @@ from .openai_service import generate_thumbnail
 from ..models import Thumbnails , Job , ThumbnailStatus , JobStatus
 from ..constants import STYLES , MAIN_PROMPT 
 
-from ..core.exceptions import ApplicationException
+from ..core.exceptions import ApplicationException , NotFoundException
 import time
 logger = logging.getLogger(__name__)
 
@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 #* main function which marks job as completed if all thumbnail are done either generated or either failed
 async def update_job_status_if_done(job_id: str):
+  try:  
     """
     Checks all thumbnails for a job.
     If none are pending or generating, marks the job as COMPLETED (or FAILED if all failed).
@@ -36,12 +37,18 @@ async def update_job_status_if_done(job_id: str):
 
         # All thumbnails have reached terminal state (generated or failed)
         job = await session.get(Job, job_id)
+        if not job:
+            raise NotFoundException(message="JOB NOT FOUND")
         if job:
             all_failed = all(t.status == ThumbnailStatus.FAILED.value for t in thumbnails)
             job.status = JobStatus.FAILED.value if all_failed else JobStatus.COMPLETED.value
+            job.error_message = "All thumbnails failed" if all_failed else None
             await session.commit()
             logger.info(f"Job {job_id} finalized with status: {job.status}")
-
+            
+  except Exception as error:
+     return {"error" , error}
+     
 
 
 #* generate each single thumbnail 

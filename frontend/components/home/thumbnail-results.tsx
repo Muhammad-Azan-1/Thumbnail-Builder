@@ -1,9 +1,11 @@
-import type { ThumbnailResultsProps } from "@/types/props";
+import type { StyleId, ThumbnailResultsProps } from "@/types/props";
 import { ArrowUpRight, RotateCcw, Trash2 } from "lucide-react";
 import { ThumbnailSkeleton } from "../ui/thumbnail-skeleton";
-import { useJobThumbnails } from "@/hooks/use-thumbnail";
 import {  ThumbnailResponse} from "@/types/thumbnails";
+import { useJobThumbnails } from "@/hooks/use-thumbnail";
+
 export default function ThumbnailResults({
+  data,
   isGenerating,
   resultStyles,
   generationError,
@@ -13,20 +15,17 @@ export default function ThumbnailResults({
   onDelete,
 }: ThumbnailResultsProps) {
  
-  //  cc4887b0-d5e2-4235-8135-4094e0cc0169
 
-  const {data} = useJobThumbnails(jobId ?? "", isGenerating)
-  const thumbnails :  ThumbnailResponse[]  = data?.ready || [];                                                
+  const readythumbnails :  ThumbnailResponse[]  = data?.ready || [];                                                
   const failedThumbnails :  ThumbnailResponse[] = data?.failed || [];  
-  const stylesToRender = resultStyles.length > 0 ? resultStyles
-  : [...(data?.ready || []), ...(data?.failed || [])].map(t => t.style_name);                                       
-  // const generationError : string = data?.error|| "";    // string   
+  const stylesToRender = resultStyles.length > 0 ? resultStyles : data?.thumbnails.map((t : ThumbnailResponse) => t.style_name as StyleId); 
+  const globalError = generationError || data?.error_message || "";
 
   const showResults =
     isGenerating ||
-    thumbnails.length > 0 ||
+    readythumbnails.length > 0 ||
     failedThumbnails.length > 0 ||
-    Boolean(generationError);
+    Boolean(globalError);;
 
   return (
     <>
@@ -68,11 +67,11 @@ export default function ThumbnailResults({
           {/* Unified Grid: Loops over selectedStyles so each slot stays in place */}
           <div className="thumbnail-grid">
 
-            {stylesToRender?.map((styleId) => {
+            {stylesToRender?.map((styleId : StyleId) => {
               const friendlyStyleName = styleId?.replace(/_/g, " ");
 
               // 1. Success State
-              const ready = thumbnails.find((t) => t.style_name === styleId);
+              const ready = readythumbnails.find((t) => t.style_name === styleId);
               if (ready) {
                 return (
                   <article className="thumbnail-card" key={ready.id || styleId}>
@@ -168,8 +167,8 @@ export default function ThumbnailResults({
           </div>
 
           {/* Global Top-Level Job Error */}
-          {generationError && (
-            <div className="result-error">{generationError}</div>
+          {globalError && (
+            <div className="result-error">{globalError}</div>
           )}
         </section>
       )}

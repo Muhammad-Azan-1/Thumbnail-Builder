@@ -49,12 +49,13 @@ export async function batch_delete_thumbnails(thumbnail_ids: string[]){
 }
 
 // delete single thumbnails
-export async function delete_thumbnail(thumbnail_id: string){
+export async function delete_thumbnail(thumbnail_id : string){
     return await FETCH_API_METHOD(`/delete/${thumbnail_id}` , {
         method : "DELETE"
     })
 
 }
+
 
 // SSE connection to get the status in real time
 export function subscribeToJobStatus(
@@ -77,7 +78,7 @@ export function subscribeToJobStatus(
 
     es.addEventListener(SSE_EVENTS.JOB_COMPLETE ,(event: MessageEvent<string>)=>{
         console.log("JOB EVENT COMPLETION DATA RECEIVED : ", event  , "data :" , JSON.parse(event.data))
-        onJobComplete()
+        onJobComplete(JSON.parse(event.data))
         es.close()
     })
 
@@ -97,7 +98,7 @@ export function subscribeToJobStatus(
             // Only tear down if the server permanently closed it
             console.error("SSE Connection failed permanently", err);
             es.close();
-            onError();
+            onError({error : "sse connection get failed"});
     }
     
 }

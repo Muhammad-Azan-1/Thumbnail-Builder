@@ -310,8 +310,11 @@ async def stream_job_status(job_id: str):
             )
             if all_done and len(sent_thumnails) == len(thumbnails):
                 logger.info(f"all done if statement executed {all_done}")
-                job_status = JobStatus.FAILED.value  if all(t.status == JobStatus.FAILED.value for t in thumbnails) else  JobStatus.COMPLETED.value
-                data = json.dumps({"job_id" : job_id , "status" : job_status})
+                
+                all_failed = all(t.status == JobStatus.FAILED.value for t in thumbnails)
+                job_status = JobStatus.FAILED.value  if  all_failed  else  JobStatus.COMPLETED.value
+                job_error =  "All thumbnails failed" if all_failed else None
+                data = json.dumps({"job_id" : job_id , "status" : job_status , "job_error" :  job_error})
                 yield f"event: {SSE_Events.JOB_COMPLETE.value}\ndata: {data}\n\n"
                 return
             
