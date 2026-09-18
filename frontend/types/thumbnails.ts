@@ -38,10 +38,10 @@ interface FailedPayload{
  error : string
 }
 
-interface JobCompletedPayload{
+interface JobCompletedPayload {
 job_id : string,
 status : string,
-error_message : string
+job_error : string
 
 
 }
@@ -62,5 +62,6 @@ export type {
     ThumbnailResponse,
     FailedPayload,
     JobEventHandlers,
+    JobCompletedPayload
 };
 

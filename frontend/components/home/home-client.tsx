@@ -7,8 +7,11 @@ import type { StyleId } from "@/types/props";
 import  {useRetryFailedThumbnail , useRetryAllFailedThumbnails} from '@/hooks/use-thumbnail'
 import { useCallback } from "react";
 import { useJobThumbnails } from "@/hooks/use-thumbnail";
-
+import { useQueryClient } from "@tanstack/react-query";
+import {startThumbnailJobStream} from '@/lib/thumbnail-job-stream'
 export default function HomeClient() {
+
+  const queryClient = useQueryClient()
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [resultStyles, setResultStyles] = useState<StyleId[]>([]);  // ['bold_dramatic' ,'music_concert']
@@ -46,46 +49,83 @@ export default function HomeClient() {
 
 
 
-  async function handleRetry(styleId: string) {
-    // const failed = failedThumbnails.find((thumbnail) => thumbnail.style_name === styleId);
-    // if (!failed) return;
-
-    // try {
-    //   // const response = await retryThumbnail(failed.id);
-    //   const response = await retryFailedThumbnailsAsync(failed.id)
-    //   setIsGenerating(true);
-    //   setFailedThumbnails((current) => current.filter((item) => item.style_name !== styleId));
-    //   subscribeToJobStatus(response.job_id, {
-    //     onThumbnailReady: handleThumbnailReady,
-    //     onThumbnailFailed: handleThumbnailFailed,
-    //     onJobComplete: () => setIsGenerating(false),
-    //     onFailed: (error) => handleFailed(error.error),
-    //     onError: handleError,
-    //   });
-    // } catch (error) {
-    //   handleFailed(error instanceof Error ? error.message : "Retry failed");
-    // }
-  }
-
+async function handleRetry(styleId: string) {                                                                                                                            
+      const failed = data?.failed?.find((t) => t.style_name === styleId);                                                                                                    
+      if (!failed || !jobId) return;                                                                                                                                         
+                                                                                                                                                                             
+      try {                                                                                                                                                                  
+        setIsGenerating(true);                                                                                                                                               
+                                                                                                                                                                             
+        // Optimistically mark as generating so skeleton shows up                                                                                                            
+        queryClient.setQueryData(["thumbnails", jobId], (old: any) => ({                                                                                                     
+          ...old,                                                                                                                                                            
+          thumbnails: (old?.thumbnails || []).map((t: any) =>                                                                                                                
+            t.id === failed.id ? { ...t, status: "generating", error_message: undefined } : t  // on retry mark the failed thumbnail as generated                                                                               
+          ),                                                                                                                                                                 
+        }));                                                                                                                                                                 
+                                                                                                                                                                             
+        const response = await retryFailedThumbnailsAsync(failed.id);                                                                                                        
+                                                                                                                                                                             
+        startThumbnailJobStream({                                                                                                                                            
+          jobId,                                                                                                                                   
+          queryClient,                                                                                                                                                       
+          onComplete: (res) => {                                                                                                                                             
+            if (res.status === "failed") {                                                                                                                                   
+              handleFailerAndSucess(res.job_error);                                                                          
+            } else {                                                                                                                                                         
+              handleFailerAndSucess();                                                                                                                                       
+            }                                                                                                                                                                
+          },                                                                                                                                                                 
+          onFailed: (err) => handleFailerAndSucess(err.error),                                                                                                               
+          onError: (err) => handleFailerAndSucess(err.error),                                                                                                                
+        });                                                                                                                                                                  
+      } catch (error) {                                                                                                                                                      
+        handleFailerAndSucess(error instanceof Error ? error.message : "Retry failed");                                                                                      
+      }                                                                                                                                                                      
+    }         
 
 
   async function handleRetryAll() {
-    // if (!jobId || failedThumbnails.length < 2) return;
+    const failed = data?.failed
+    if(!failed  || !(failed.length > 1) || !jobId ){
+      return
+    }
 
-    // try {
-    //   const repsonse = await retryAllFailedThumbnailsAsync(jobId);
-    //   setIsGenerating(true);
-    //   setFailedThumbnails([]);
-    //   subscribeToJobStatus(jobId, {
-    //     onThumbnailReady: handleThumbnailReady,
-    //     onThumbnailFailed: handleThumbnailFailed,
-    //     onJobComplete: () => setIsGenerating(false),
-    //     onFailed: (error) => handleFailed(error.error),
-    //     onError: handleError,
-    //   });
-    // } catch (error) {
-    //   handleFailed(error instanceof Error ? error.message : "Retry failed");
-    // }
+    try {
+    setIsGenerating(true)
+
+
+            // Optimistically mark as generating so skeleton shows up                                                                                                            
+    queryClient.setQueryData(["thumbnails", jobId], (old: any) => ({                                                                                                     
+          ...old,                                                                                                                                                            
+          thumbnails: (old?.thumbnails || []).map((t: any) =>                                                                                                                
+            t.job_id == jobId && t.status == 'failed' ? { ...t, status: "generating", error_message: undefined } : t  // on retry mark the failed thumbnail as generated                                                                               
+          ),                                                                                                                                                                 
+        }));                                                                                                                                                                 
+                       
+    const response = await retryAllFailedThumbnailsAsync(jobId)
+
+    startThumbnailJobStream({
+      jobId,
+      queryClient,
+      onComplete : (res) =>{
+        if (data.error_message){
+           handleFailerAndSucess(res.job_error );           
+        }else{
+          setIsGenerating(false)
+        }
+      },
+      onFailed : (error)=> handleFailerAndSucess(error.error),
+      onError : (error) => handleFailerAndSucess(error.error)
+      
+    })
+
+    } catch (error) {
+        handleFailerAndSucess(error instanceof Error  ? error.message : "Retry failed")
+    }
+
+
+
   }
 
   return (
@@ -119,7 +159,6 @@ export default function HomeClient() {
         data={data}
         isGenerating={isGenerating}
         resultStyles={resultStyles}
-        jobId={jobId}
         generationError={generationError}
 
         onDelete={handleDelete}

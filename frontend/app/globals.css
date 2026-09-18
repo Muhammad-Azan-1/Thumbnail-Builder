@@ -704,8 +704,21 @@ textarea:focus {
 .thumbnail-card-info a svg { width: 13px; height: 13px; }
 .thumbnail-card-info a:hover, .variant-row a:hover { text-decoration: underline; }
 .variant-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 13px 13px; }
-.variant-row a { padding: 5px 7px; border: 1px solid #413637; border-radius: 5px; color: #bca39a; font-size: 10px; }
-.result-error { margin-top: 12px; padding: 11px 13px; border: 1px solid #694242; border-radius: 7px; color: #f09c8d; background: rgba(111, 43, 43, .2); font-size: 12px; }
+.result-error {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 8px;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.12);
+  font-family: var(--font-geist-mono), monospace;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
 
 @media (max-width: 700px) {

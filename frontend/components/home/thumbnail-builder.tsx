@@ -11,9 +11,9 @@ import {
 import { ArrowRight, LoaderCircle } from "lucide-react";
 import { useUploadHeadshot } from "@/hooks/use-upload-headshot";
 import { useCreateJob } from "@/hooks/use-thumbnail";
-import { subscribeToJobStatus } from "@/lib/job";
 import type { StyleId, ThumbnailBuilderProps } from "@/types/props";
-import {ThumbnailReadyPayload , ThumbnailFailedPayload , FailedPayload, ThumbnailResponse} from '@/types/thumbnails'
+import { ThumbnailResponse } from "@/types/thumbnails";
+import { startThumbnailJobStream } from "@/lib/thumbnail-job-stream";
 
 const styles = [
   ["bold_dramatic", "Bold & Dramatic", "#f36b45"],
@@ -45,8 +45,7 @@ export default function ThumbnailBuilder({
   isGenerating,
   data,
 }: ThumbnailBuilderProps) {
-
-  const queryClient = useQueryClient() //* for adding thumbnails data to the ten stack query cache
+  const queryClient = useQueryClient(); //* for adding thumbnails data to the ten stack query cache
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const stylePickerRef = useRef<HTMLDivElement>(null);
@@ -60,22 +59,19 @@ export default function ThumbnailBuilder({
   const [showValidation, setShowValidation] = useState(false);
   const [selectedStyles, setSelectedStyles] = useState<StyleId[]>([]);
 
-
   //* on full page refresh or when ever the jobData changes
 
-  useEffect(()=>{
-    if(!data) return
+  useEffect(() => {
+    if (!data) return;
 
     setSelectedStyles(
       data.thumbnails
         .map((thumbnail: ThumbnailResponse) => thumbnail.style_name)
-        .filter((style): style is StyleId => Boolean(style))
-    )
-    setPrompt(data.user_prompt ?? "")
-    setPreviewUrl(data.headshot_url ?? "")
-    
-  },[data])
-  
+        .filter((style): style is StyleId => Boolean(style)),
+    );
+    setPrompt(data.user_prompt ?? "");
+    setPreviewUrl(data.headshot_url ?? "");
+  }, [data]);
 
   // TanStack Query mutation hooks
   const { mutateAsync: uploadHeadshotAsync } = useUploadHeadshot();
@@ -149,14 +145,13 @@ export default function ThumbnailBuilder({
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-
   // sets the styles selected by user into the hook
   function toggleStyle(styleId: StyleId) {
     if (isGenerating) return;
     setShowValidation(false);
-    setSelectedStyles((current : StyleId[]) => {
+    setSelectedStyles((current: StyleId[]) => {
       if (current.includes(styleId))
-        return current.filter((id : string) => id !== styleId);
+        return current.filter((id: string) => id !== styleId);
       if (current.length >= 3) return current;
       return [...current, styleId];
     });
@@ -165,11 +160,12 @@ export default function ThumbnailBuilder({
   function removeStyle(styleId: StyleId) {
     if (isGenerating) return;
     setShowValidation(false);
-    setSelectedStyles((current : StyleId[]) => current.filter((id : string) => id !== styleId));
+    setSelectedStyles((current: StyleId[]) =>
+      current.filter((id: string) => id !== styleId),
+    );
   }
 
-
-
+  //* main function which starts the image generation
   async function handleGenerate() {
     if (!file || !prompt.trim() || selectedStyles.length === 0) {
       setShowValidation(true);
@@ -187,64 +183,37 @@ export default function ThumbnailBuilder({
         styles: selectedStyles,
         num_of_thumbnails: selectedStyles.length,
       });
-      
+
       sessionStorage.setItem("jobId", jobResult.job_id);
       onJobCreated(jobResult.job_id);
-     
 
       // 3. Subscribe to real-time status updates via SSE
-      subscribeToJobStatus(jobResult.job_id, {
-
-        //* when ever SSE API fucntion call any of these function we add its data into cache
-
-        onThumbnailReady : (data : ThumbnailReadyPayload) => {
-           queryClient.setQueryData( // change cache data trigger due to which where this data is being used react re-renders that comp
-            ['thumbnails' , jobResult.job_id],
-            (old:any) =>({
-              ...old,
-              thumbnails: [                                                                                                    
-          ...(old?.thumbnails || []).filter((t: any) => t.id !== data.id),                                               
-            data   // ← { id, style_name, status: "completed", imageKit_url, variants }                                    
-            ]                            
-            })
-           )
-        },
-
-        onThumbnailFailed:  (data :  ThumbnailFailedPayload) => {
-           queryClient.setQueryData(
-            ['thumbnails' , jobResult.job_id],
-            (old:any) =>({
-              ...old,
-               thumbnails: [                                                                                                    
-           ...(old?.thumbnails || []).filter((t: any) => t.id !== data.id),                                               
-               data   // ← { id, style_name, status: "failed", error_message }                                                
-            ]     
-            })
-           )
-        },
-
-        onJobComplete: (data) => {
-        if (data.status === "failed") {
-          onFailedOrSucess(data.error_message || "All thumbnails failed");
-        } else {
-          onFailedOrSucess();
-      }
-        },
+      startThumbnailJobStream({
+        jobId: jobResult?.job_id,
+        queryClient,
         
-        onFailed : (error : FailedPayload) =>{
-           onFailedOrSucess(error.error) // set is generating to false             
+        onComplete: (data) => {
+          if (data.status === "failed") {
+            onFailedOrSucess(data.job_error);
+          } else {
+            onFailedOrSucess();
+          }
         },
 
-        onError : (error : FailedPayload) => onFailedOrSucess(error.error)
+        onFailed: (error) => {
+          onFailedOrSucess(error.error);
+        },
+
+        onError: (error) => {
+          onFailedOrSucess(error.error);
+        },
       });
     } catch (err: unknown) {
-
-      onFailedOrSucess(err instanceof Error ? err.message : "Generation failed");
+      onFailedOrSucess(
+        err instanceof Error ? err.message : "Generation failed",
+      );
     }
   }
-
-
-
 
   return (
     <section className="builder-panel" aria-label="Thumbnail builder">
@@ -296,8 +265,6 @@ export default function ThumbnailBuilder({
             )}
           </div>
 
-
-
           <input
             ref={fileInputRef}
             id="headshot"
@@ -317,7 +284,7 @@ export default function ThumbnailBuilder({
           </label>
           <textarea
             id="prompt"
-            style={{ fontFamily: 'monospace' }}
+            style={{ fontFamily: "monospace" }}
             className={`font-mono placeholder:font-mono ${
               showValidation && !prompt.trim() ? "input-invalid" : ""
             }`}
@@ -331,7 +298,9 @@ export default function ThumbnailBuilder({
             rows={4}
           />
           <div className="styles-heading">
-            <span className="field-label pb-1 font-mono">Choose your styles</span>
+            <span className="field-label pb-1 font-mono">
+              Choose your styles
+            </span>
             <span className="selection-count font-mono">
               {selectedStyles.length}/3 selected
             </span>
@@ -418,11 +387,12 @@ export default function ThumbnailBuilder({
           <p className="style-hint pt-2 font-mono">
             Choose up to 3 styles. Each adds a different creative direction.
           </p>
-          {showValidation && (!file || !prompt.trim() || selectedStyles.length === 0) && (
-            <p className="validation-message font-mono" role="alert">
-              Add a headshot, description, and at least one style to continue.
-            </p>
-          )}
+          {showValidation &&
+            (!file || !prompt.trim() || selectedStyles.length === 0) && (
+              <p className="validation-message font-mono" role="alert">
+                Add a headshot, description, and at least one style to continue.
+              </p>
+            )}
         </div>
       </div>
 
@@ -436,7 +406,9 @@ export default function ThumbnailBuilder({
       <button
         className="generate-button"
         type="button"
-        aria-disabled={!file || !prompt.trim() || selectedStyles.length === 0 || isGenerating}
+        aria-disabled={
+          !file || !prompt.trim() || selectedStyles.length === 0 || isGenerating
+        }
         disabled={isGenerating}
         onClick={handleGenerate}
       >
@@ -444,12 +416,11 @@ export default function ThumbnailBuilder({
           ✦
         </span>
 
-  <span className="font-mono">
-  {isGenerating
-          ? "Preparing your thumbnails..."
-          : "Generate Thumbnails"}
-    </span>
-        
+        <span className="font-mono">
+          {isGenerating
+            ? "Preparing your thumbnails..."
+            : "Generate Thumbnails"}
+        </span>
 
         {isGenerating ? (
           <LoaderCircle className="button-loader" aria-hidden="true" />

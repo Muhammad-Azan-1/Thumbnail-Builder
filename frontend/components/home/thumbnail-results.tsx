@@ -1,5 +1,5 @@
 import type { StyleId, ThumbnailResultsProps } from "@/types/props";
-import { ArrowUpRight, RotateCcw, Trash2 } from "lucide-react";
+import { ArrowUpRight, RotateCcw, Trash2, AlertCircle } from "lucide-react";
 import { ThumbnailSkeleton } from "../ui/thumbnail-skeleton";
 import {  ThumbnailResponse} from "@/types/thumbnails";
 import { useJobThumbnails } from "@/hooks/use-thumbnail";
@@ -9,7 +9,6 @@ export default function ThumbnailResults({
   isGenerating,
   resultStyles,
   generationError,
-  jobId,
   onRetry,
   onRetryAll,
   onDelete,
@@ -20,6 +19,8 @@ export default function ThumbnailResults({
   const failedThumbnails :  ThumbnailResponse[] = data?.failed || [];  
   const stylesToRender = resultStyles.length > 0 ? resultStyles : data?.thumbnails.map((t : ThumbnailResponse) => t.style_name as StyleId); 
   const globalError = generationError || data?.error_message || "";
+  console.log("global error" , generationError)
+  console.log("data?.error_messager" , data?.error_message)
 
   const showResults =
     isGenerating ||
@@ -168,7 +169,10 @@ export default function ThumbnailResults({
 
           {/* Global Top-Level Job Error */}
           {globalError && (
-            <div className="result-error">{globalError}</div>
+            <div className="result-error font-mono font-bold" role="alert">
+              <AlertCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>{globalError}</span>
+            </div>
           )}
         </section>
       )}

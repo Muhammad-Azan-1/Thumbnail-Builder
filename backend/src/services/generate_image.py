@@ -39,6 +39,7 @@ async def update_job_status_if_done(job_id: str):
         job = await session.get(Job, job_id)
         if not job:
             raise NotFoundException(message="JOB NOT FOUND")
+        
         if job:
             all_failed = all(t.status == ThumbnailStatus.FAILED.value for t in thumbnails)
             job.status = JobStatus.FAILED.value if all_failed else JobStatus.COMPLETED.value
@@ -52,8 +53,7 @@ async def update_job_status_if_done(job_id: str):
 
 
 #* generate each single thumbnail 
-async def generate_single_thumbnail(thumbnail_id: str, user_prompt: str, headshot_url: str ,) -> dict:
-   start = time.monotonic()                                                                                                               
+async def generate_single_thumbnail(thumbnail_id: str, user_prompt: str, headshot_url: str ,) -> dict:                                                                                                         
    logger.info(f"Generating thumbnail of ID : {thumbnail_id}")
 
    
@@ -61,6 +61,7 @@ async def generate_single_thumbnail(thumbnail_id: str, user_prompt: str, headsho
      thumbnail = await session.get(Thumbnails , thumbnail_id)
      thumbnail.status = ThumbnailStatus.GENERATING.value
      style = thumbnail.style_name
+     job_id = thumbnail.job_id
     #session.add(thumbnail) #* this is unecessery bcz we are updating and existing row in db
      await session.commit()
 
@@ -69,9 +70,6 @@ async def generate_single_thumbnail(thumbnail_id: str, user_prompt: str, headsho
    try:  
       
      image_bytes = await generate_thumbnail(user_prompt, MAIN_PROMPT, style_prompt, headshot_url)
-     async with async_session_maker() as session:
-        thumbnail = await session.get(Thumbnails , thumbnail_id)
-        job_id = thumbnail.job_id
 
      #? asyncio.to_thread was specifically created in Python 3.9+ for this exact problem: when you have a synchronous third-party library (like ImageKit SDK) that you
      #? need to call from async code.
@@ -84,9 +82,9 @@ async def generate_single_thumbnail(thumbnail_id: str, user_prompt: str, headsho
          thumbnail.imageKit_file_id = url.file_id
          await session.commit()
 
-     logger.info(f"Thumbnail generated and uploaded successfully for thumbnail_id: {thumbnail_id}")
-     elapsed = time.monotonic() - start
-     logger.info(f"Thumbnail {thumbnail_id} generation took {elapsed:.2f}s")
+   #   logger.info(f"Thumbnail generated and uploaded successfully for thumbnail_id: {thumbnail_id}")
+   #   elapsed = time.monotonic() - start
+   #   logger.info(f"Thumbnail {thumbnail_id} generation took {elapsed:.2f}s")
 
      await update_job_status_if_done(job_id)
      return {"thumbnail_id": thumbnail_id, "imageKit_url": url.url}

@@ -36,7 +36,6 @@ export interface ThumbnailBuilderProps {
 export interface ThumbnailResultsProps {
   isGenerating: boolean;
   resultStyles: StyleId[];
-  jobId : string | null
   generationError: string;
   onRetry?: (styleId: string) => void;
   onRetryAll?: () => void;

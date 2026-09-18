@@ -58,9 +58,7 @@ export async function delete_thumbnail(thumbnail_id : string){
 
 
 // SSE connection to get the status in real time
-export function subscribeToJobStatus(
-    job_id: string,
-    { onThumbnailReady, onThumbnailFailed, onJobComplete, onFailed , onError }: JobEventHandlers
+export function subscribeToJobStatus(job_id: string, { onThumbnailReady, onThumbnailFailed, onJobComplete, onFailed , onError }: JobEventHandlers
 ) {
 
     const es = new EventSource(`${BASE_API}/jobs/${job_id}/stream`)

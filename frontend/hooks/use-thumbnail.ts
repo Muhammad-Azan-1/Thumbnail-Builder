@@ -37,7 +37,8 @@ export function useJobThumbnails(jobId:string , isGenerating : boolean = true){
         //6
         refetchOnReconnect: false,
 
-      //7 It transforms the data returned by the backend before your component receives it.
+      //7 It transforms the data before giving to the component
+      //   │ Yes! Every single time setQueryData is called, select runs before your component gets the data.                                                                          
       select: (data): JobQueryData => ({
       ...data,
       ready: data?.thumbnails.filter((t:ThumbnailResponse) => t.status === "generated"),
@@ -46,6 +47,8 @@ export function useJobThumbnails(jobId:string , isGenerating : boolean = true){
 
     })
 }
+
+
 
 //* 4 Explanation
 
@@ -194,3 +197,76 @@ export function useDeleteAllThumbnails(){
 //       • jobId makes it specific to that particular job (job_123).
 //       • If jobId changes to job_456, TanStack Query looks up ['thumbnails', 'job_456'] instead!
   
+
+
+
+
+//  ### Part 2: Does select run every time the cache updates?                                                                                                                  
+                                                                                                                                                                             
+//   │ Yes! Every single time setQueryData is called, select runs before your component gets the data.                                                                          
+                                                                                                                                                                             
+//   Here is the exact lifecycle inside TanStack Query:                                                                                                                         
+                                                                                                                                                                             
+// ┌───────────────────────────────────────────────────────────┐
+// │                                                           │
+// │      SSE Event: onThumbnailReady / onThumbnailFailed      │
+// │                                                           │
+// └─────────────────────────────┬─────────────────────────────┘
+//                               │
+//                               ▼
+// ┌───────────────────────────────────────────────────────────┐
+// │                                                           │
+// │      queryClient.setQueryData(['thumbnails', jobId])      │
+// │                                                           │
+// └─────────────────────────────┬─────────────────────────────┘
+//                               │
+//                               ▼
+// ┌───────────────────────────────────────────────────────────┐
+// │                                                           │
+// │ TanStack Query Cache is updated with raw thumbnails array │
+// │                                                           │
+// └─────────────────────────────┬─────────────────────────────┘
+//                               │
+//                               ▼
+// ┌───────────────────────────────────────────────────────────┐
+// │                                                           │
+// │       useJobThumbnails observer detects cache change      │
+// │                                                           │
+// └─────────────────────────────┬─────────────────────────────┘
+//                               │
+//                               ▼
+// ┌───────────────────────────────────────────────────────────┐
+// │                                                           │
+// │                     select(data) runs:                    │
+// │                                                           │
+// │        filters thumbnails into ready[] and failed[]       │
+// │                                                           │
+// └─────────────────────────────┬─────────────────────────────┘
+//                               │
+//                               ▼
+// ┌───────────────────────────────────────────────────────────┐
+// │                                                           │
+// │      React re-renders component with transformed data     │
+// │                                                           │
+// └───────────────────────────────────────────────────────────┘
+  
+//   #### Why select runs on both backend API calls and setQueryData:
+  
+//   1. TanStack Query separates Storage from Delivery:
+//       • The Cache stores the raw object: { id, thumbnails: [...] }.
+//       • select is a projection layer that runs right before handing the data to const { data } = useJobThumbnails(...).
+//   2. Whenever the cache changes from ANY source:
+//       • Whether it was fetched from the backend (queryFn: () => get_all_thumbnails(jobId) on page reload)
+//       • Or updated manually via queryClient.setQueryData(...) (from SSE stream)
+//   TanStack Query notices the cache was touched and immediately passes the new cache data through use-thumbnail.ts:41-45:
+//     select: (data): JobQueryData => ({
+//       ...data,
+//       ready: data?.thumbnails?.filter((t: ThumbnailResponse) => t.status === "generated") || [],
+//       failed: data?.thumbnails?.filter((t: ThumbnailResponse) => t.status === "failed") || [],
+//     })
+  
+//   3. Even with enabled: false:
+//   Even though enabled: !!jobId && !isGenerating turns off automatic HTTP fetching while generating, the cache observer stays active. The moment setQueryData runs, select    
+//   calculates the new ready and failed lists, and your UI updates instantaneously!
+
+// ──────────────────────
