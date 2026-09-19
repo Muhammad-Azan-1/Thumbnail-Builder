@@ -166,7 +166,7 @@ export default function ThumbnailBuilder({
   }
 
   //* main function which starts the image generation
-  async function handleGenerate() {
+  async function handleGenerate() :  Promise<void>  {
     if (!file || !prompt.trim() || selectedStyles.length === 0) {
       setShowValidation(true);
       return;

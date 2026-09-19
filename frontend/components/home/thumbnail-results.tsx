@@ -7,11 +7,13 @@ import { useJobThumbnails } from "@/hooks/use-thumbnail";
 export default function ThumbnailResults({
   data,
   isGenerating,
+  isDeleting = false,
   resultStyles,
   generationError,
   onRetry,
   onRetryAll,
   onDelete,
+  onDeleteAll,
 }: ThumbnailResultsProps) {
  
 
@@ -47,16 +49,34 @@ export default function ThumbnailResults({
             </div>
             <div className="results-heading-actions">
               
+              {/* retry all failed thumbnails */}
               {failedThumbnails.length > 1 && onRetryAll && !isGenerating && (
                 <button
                   type="button"
                   className="retry-all-button font-mono"
                   onClick={onRetryAll}
+                  disabled={isDeleting}
                 >
                   <RotateCcw aria-hidden="true" />
                   Retry all
                 </button>
               )}
+
+              {/* delete all */}
+              {Boolean(data?.thumbnails && data.thumbnails.length > 0) && onDeleteAll && !isGenerating && (
+                <button
+                  type="button"
+                  className="delete-all-button font-mono"
+                  onClick={onDeleteAll}
+                  disabled={isDeleting}
+                  title="Delete all thumbnails"
+                >
+                  <Trash2 aria-hidden="true" />
+                  {isDeleting ? "Deleting..." : "Delete all"}
+                </button>
+              )}
+
+
               {isGenerating && (
                 <span className="live-status font-mono">
                   <span /> Generating
@@ -81,6 +101,18 @@ export default function ThumbnailResults({
                         src={ready.imageKit_url}
                         alt={`${ready.status} generated thumbnail`}
                       />
+                      {onDelete && (
+                        <button
+                          type="button"
+                          onClick={() => onDelete(ready.id, styleId)}
+                          disabled={isDeleting || isGenerating}
+                          className="thumbnail-card-delete-btn"
+                          aria-label={`Delete ${friendlyStyleName} thumbnail`}
+                          title="Delete thumbnail"
+                        >
+                          <Trash2 aria-hidden="true" />
+                        </button>
+                      )}
                 
                     </div>
                     <div className="thumbnail-card-info">
@@ -124,7 +156,8 @@ export default function ThumbnailResults({
                       {onDelete && (
                         <button
                           type="button"
-                          onClick={() => onDelete(styleId!)}
+                          onClick={() => onDelete(failed.id, styleId!)}
+                          disabled={isDeleting || isGenerating}
                           className="failed-thumbnail-dismiss"
                           aria-label={`Delete failed ${friendlyStyleName} thumbnail`}
                           title="Remove failed thumbnail"

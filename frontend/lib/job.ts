@@ -41,7 +41,7 @@ export async function retryAllFailedThumbnails(jobId: string) {
 
 // delete batch thumbnails
 export async function batch_delete_thumbnails(thumbnail_ids: string[]){
-    return await FETCH_API_METHOD(`/batch-delete` , {
+    return await FETCH_API_METHOD(`/delete-batch` , {
         body : JSON.stringify({'thumbnail_ids' : thumbnail_ids}),
         method : "DELETE"
     })

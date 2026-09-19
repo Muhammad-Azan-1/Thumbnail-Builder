@@ -250,7 +250,7 @@ async def delete_thumbnail(thumbnail_id : str , session : AsyncSession = Depends
     await delete_empty_jobs(session , {thumbnail.job_id})
     await session.commit()
 
-    return ThumbnailDeleteResponse(thumbnail_id , "Thumbnail has been delete successfully")
+    return ThumbnailDeleteResponse(thumbnail_id=thumbnail_id, message="Thumbnail has been deleted successfully")
     
 
     

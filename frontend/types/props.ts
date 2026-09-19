@@ -1,5 +1,5 @@
 
-import { JobResponse } from "./job";
+
 import { JobQueryData } from "./job";
 export type StyleId =
   | "bold_dramatic"
@@ -35,10 +35,12 @@ export interface ThumbnailBuilderProps {
 
 export interface ThumbnailResultsProps {
   isGenerating: boolean;
+  isDeleting?: boolean;
   resultStyles: StyleId[];
   generationError: string;
   onRetry?: (styleId: string) => void;
   onRetryAll?: () => void;
-  onDelete?: (styleId: string) => void;
-  data?: JobQueryData
+  onDelete?: (thumbnailId: string, styleId?: string) => void;
+  onDeleteAll?: () => void;
+  data?: JobQueryData;
 }

@@ -16,18 +16,27 @@ export async function FETCH_API_METHOD<T>(endpoint : string , options? : Request
             headers 
         })
 
-        if (!response.ok){
-            const errorBody = await response.text();
-
-            throw new Error(errorBody || `Request Failed with status ${response.status}`)
+      if (!response.ok) {                                                                                                                                                      
+          // 1. Try to read JSON error message from backend                                                                                                                      
+          let errorMessage = `Request failed with status ${response.status}`;                                                                                                    
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorData.detail || errorData.error || errorMessage;
+          } catch {
+            const text = await response.text();
+            if (text) errorMessage = text;
+          }
+  
+          // 2. THROW the error so callers know it failed
+          throw new Error(errorMessage);
         }
-
-        return await response.json()
-
-
-    } catch(error : unknown){
-        throw error instanceof Error ? error : new Error(String(error))
-    }
+  
+        return await response.json();
+        
+      } catch (error: unknown) {
+        // 3. ALWAYS re-throw the error! Do not 'return' inside catch!
+        throw error instanceof Error ? error : new Error(String(error));
+      }
 
 }
 

@@ -17,3 +17,7 @@
 
 //   console.log( "result",Math.min(final , ceiling))
 // },100 )
+
+
+//* continue the convo
+// agy --conversation=2cfcd260-959e-4914-9d4a-f3c43cea6c00
