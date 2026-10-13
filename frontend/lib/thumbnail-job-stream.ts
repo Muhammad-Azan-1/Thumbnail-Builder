@@ -21,7 +21,7 @@ export function startThumbnailJobStream({
   onError?: (error: FailedPayload) => void;
 }) {
   return subscribeToJobStatus(jobId, {
-    onThumbnailReady: (data: ThumbnailReadyPayload) => {
+    onThumbnailReady : (data: ThumbnailReadyPayload) => {
       updateThumbnailInCache(queryClient, jobId, data);
     },
 
@@ -49,16 +49,16 @@ function updateThumbnailInCache(
 ) {
   queryClient.setQueryData(["thumbnails", jobId], (old: any) => {
     const currentThumbnails: any[] = old?.thumbnails || [];
-    const exists = currentThumbnails.some((t) => t.id === data.id); 
-    const updatedThumbnails = exists
 
-      ? currentThumbnails.map((t) => ( t.id === data.id ? { ...t, ...data } : t))
+    const exists = currentThumbnails.some((t) => t.id === data.id); 
+    const updatedThumbnails = exists ? currentThumbnails.map((t) => ( t.id === data.id ? { ...t, ...data } : t))
       : [...currentThumbnails, data];
 
     return {
       ...old,
       thumbnails: updatedThumbnails,
     };
+    
   });
 }
 

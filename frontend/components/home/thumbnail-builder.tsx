@@ -62,7 +62,14 @@ export default function ThumbnailBuilder({
   //* on full page refresh or when ever the jobData changes
 
   useEffect(() => {
-    if (!data) return;
+    if (!data) {
+      //* if when user select delete all thumbnails and we want to aslo remove the file and prompt and selected styles from the builder
+      setFile(null);
+      setPreviewUrl("");
+      setPrompt("");
+      setSelectedStyles([]);
+      return;
+    };
 
     setSelectedStyles(
       data.thumbnails
@@ -188,11 +195,12 @@ export default function ThumbnailBuilder({
       onJobCreated(jobResult.job_id);
 
       // 3. Subscribe to real-time status updates via SSE
-      startThumbnailJobStream({
+      startThumbnailJobStream(
+        {
         jobId: jobResult?.job_id,
         queryClient,
         
-        onComplete: (data) => {
+        onComplete : (data) => {
           if (data.status === "failed") {
             onFailedOrSucess(data.job_error);
           } else {
@@ -207,7 +215,11 @@ export default function ThumbnailBuilder({
         onError: (error) => {
           onFailedOrSucess(error.error);
         },
-      });
+      }
+
+    );
+
+
     } catch (err: unknown) {
       onFailedOrSucess(
         err instanceof Error ? err.message : "Generation failed",

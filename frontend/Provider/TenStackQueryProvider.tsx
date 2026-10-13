@@ -21,3 +21,6 @@ const TenStackQueryProvider = ({ children }: { children: ReactNode }) => {
 }
 
 export default TenStackQueryProvider
+
+
+// There’s no cache persister configured there, such as PersistQueryClientProvider or persistQueryClient. A browser refresh reloads the app and creates a new QueryClient, so the React Query cache is empty. Your app separately restores the jobId from sessionStorage, which is why the enabled query can fetch the job again.

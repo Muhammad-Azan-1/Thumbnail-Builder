@@ -21,6 +21,7 @@ export async function FETCH_API_METHOD<T>(endpoint : string , options? : Request
           let errorMessage = `Request failed with status ${response.status}`;                                                                                                    
           try {
             const errorData = await response.json();
+            console.log("errorData : ", errorData)
             errorMessage = errorData.message || errorData.detail || errorData.error || errorMessage;
           } catch {
             const text = await response.text();

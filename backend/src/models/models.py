@@ -40,15 +40,25 @@ class Thumbnails(SQLModel , table=True):
 class Job(SQLModel , table=True):
     __tablename__ = "job"
     id: str = Field(default_factory=_uuid , primary_key=True , index=True)
+    user_id: str = Field(foreign_key="user.id" , nullable=False)    
     user_prompt : str = Field(default="" , nullable=False)
     status: JobStatus = Field(
         default=JobStatus.PENDING,
         nullable=False  
     )
     error_message : Optional[str] = Field(default=None)
-    num_of_thumbnails : int = Field(default=1 , le=1 , ge=3 , nullable=False)
+    num_of_thumbnails : int = Field(default=1 , le=3 , ge=1 , nullable=False)
     created_at: datetime = Field(default_factory=_now , nullable=False)
     headshot_url : str = Field(default=None , nullable=False)
 
     thumbnails : List[Thumbnails] = Relationship(back_populates="job")
+    user: Optional["User"] = Relationship(back_populates="jobs")
 
+
+class User(SQLModel , table=True):
+    __tablename__ = "user"
+    id: str = Field(default_factory=_uuid , primary_key=True , index=True)
+
+
+
+    jobs: List[Job] = Relationship(back_populates="user")

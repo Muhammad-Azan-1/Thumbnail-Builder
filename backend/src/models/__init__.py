@@ -1,4 +1,4 @@
-from .thumbnail import Thumbnails , Job , ThumbnailStatus , JobStatus
+from .models import Thumbnails , Job , ThumbnailStatus , JobStatus
 
 __all__ = ["Job", "Thumbnails" , "ThumbnailStatus" , "JobStatus"] 
 

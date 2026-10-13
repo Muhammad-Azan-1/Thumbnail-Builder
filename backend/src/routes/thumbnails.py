@@ -213,7 +213,7 @@ async def delete_batch_thumbnails(thumbnail_ids : ThumbnailDeleteRequest ,  sess
     affected_job_ids = {thumbnail.job_id for thumbnail in thumbnails} # get all job_ids of thumbnails
 
     for thumbnail in thumbnails:
-        if thumbnail.imageKit_file_id:
+        if thumbnail.imageKit_file_id: # if imageKit_file_id exists then delete the file from imagekit
             await asyncio.to_thread(delete_file, thumbnail.imageKit_file_id)
 
     await session.exec(

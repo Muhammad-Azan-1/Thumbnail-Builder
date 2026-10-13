@@ -17,7 +17,7 @@ export default function HomeClient() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [resultStyles, setResultStyles] = useState<StyleId[]>([]);  // ['bold_dramatic' ,'music_concert']
   const [jobId, setJobId] = useState<string | null>(() => typeof window !== "undefined" ? sessionStorage.getItem("jobId"): null);
-  // const [jobId, setJobId] = useState<string | null >('c7d29296-01d0-43ee-8124-f5271d59bc0c');
+  // const [jobId, setJobId] = useState<string | null >('133d56d2-cc00-4b94-9c15-ab2599af9ebf');
   const [generationError, setGenerationError] = useState("")
 
   // Ten stack query hooks
@@ -26,6 +26,7 @@ export default function HomeClient() {
 
   const {mutateAsync : retryFailedThumbnailsAsync} = useRetryFailedThumbnail()
   const {mutateAsync : retryAllFailedThumbnailsAsync} = useRetryAllFailedThumbnails()
+
   const { mutateAsync : deleteThumbnailsAsync} = useDeleteThumbnail()
   const { mutateAsync : deleteAllThumbnailsAsync} = useDeleteAllThumbnails()
  
@@ -107,7 +108,7 @@ export default function HomeClient() {
         ...old,
         thumbnails: [],
       }));
-      queryClient.removeQueries({ queryKey: ["thumbnails", jobId] });
+      queryClient.removeQueries({ queryKey: ["thumbnails", jobId]  });
 
       sessionStorage.removeItem("jobId");
       setJobId(null);
@@ -118,8 +119,6 @@ export default function HomeClient() {
       setIsDeleting(false);
     }
   }
-
-
 
 
 async function handleRetry(styleId: string) :  Promise<void>  {                                                                                                                            
@@ -157,6 +156,7 @@ async function handleRetry(styleId: string) :  Promise<void>  {
       }                                                                                                                                                                      
     }         
 
+
 async function handleRetryAll() : Promise<void> {
     const failed = data?.failed
     if(!failed  || !(failed.length > 1) || !jobId ){
@@ -168,7 +168,7 @@ async function handleRetryAll() : Promise<void> {
     // Optimistically mark as generating so skeleton shows up                                                                                                            
     queryClient.setQueryData(["thumbnails", jobId], (old: any) => ({                                                                                                     
           ...old,                                                                                                                                                            
-          thumbnails: (old?.thumbnails || []).map((t: any) =>                                                                                                                
+          thumbnails : (old?.thumbnails || []).map((t: any) =>                                                                                                                
             t.job_id == jobId && t.status == 'failed' ? { ...t, status: "generating", error_message: undefined } : t  // on retry mark the failed thumbnail as generated                                                                               
           ),                                                                                                                                                                 
         }));                                                                                                                                                                 
