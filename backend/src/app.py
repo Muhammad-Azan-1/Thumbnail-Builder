@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from src.db.db import create_db_and_tables
 from src.routes.thumbnails import router as thumbnails_router
+from src.routes.users import router as users_router
 from fastapi.middleware.cors import CORSMiddleware
 from src.core.exceptions import ApplicationException
 from src.core.error_handler import application_exception_handler, generic_exception_handler
@@ -35,7 +36,8 @@ app.add_exception_handler(Exception, generic_exception_handler)
 
 
 #* routes
-app.include_router(router=thumbnails_router , prefix="/api/v1")
+app.include_router(router=thumbnails_router , prefix="/api/v1") # this becomes /api/v1/thumbnails (prefix combines with the prefix of thumbnails_router)
+app.include_router(router=users_router , prefix="/api/v1") 
 
 
 #* middleware

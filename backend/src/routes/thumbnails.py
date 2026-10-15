@@ -29,7 +29,7 @@ import json
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/thumbnails", tags=["thumbnails"])
+router = APIRouter(prefix="/thumbnails", tags=["Thumbnails"])
 
 #1 User upload the Image from frontend we saved that in imagekit
 @router.post("/upload-headshot" , response_model=UploadHeadshotResponse)
