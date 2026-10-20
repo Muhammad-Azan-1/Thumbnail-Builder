@@ -76,15 +76,22 @@ class AuthService():
             ApplicationException: If the OTP or token is invalid or expired. or if email is already verfied
         """
 
-        user = None
-        hashing = None
-
-        if(otp):
-            hashing = hashlib.sha256(otp.encode()).hexdigest()
-            user = await session.exec(select(User).where(User.verification_otp == hashing and User.verification_expiry > datetime.now(timezone.utc))).first()
+        expires_after = datetime.now(timezone.utc)
+        if otp:
+            hashed_otp = hashlib.sha256(otp.encode()).hexdigest()
+            query = select(User).where(
+                User.verification_otp == hashed_otp,
+                User.verification_expiry > expires_after,
+            )
         else:
-            hashing = hashlib.sha256(token.encode()).hexdigest()
-            user = await session.exec(select(User).where(User.verification_token == hashing and User.verification_expiry > datetime.now(timezone.utc))).first()
+            hashed_token = hashlib.sha256(token.encode()).hexdigest()
+            query = select(User).where(
+                User.verification_token == hashed_token,
+                User.verification_expiry > expires_after,
+            )
+
+        user = (await session.exec(query)).first()
+        
 
         if not user:
             raise ApplicationException(
@@ -121,8 +128,8 @@ class AuthService():
         """
         # fetch user first
 
-        result = await session.exec(select(User).where(User.email == user_data.email))
-        user = result.first()
+        user = (await session.exec(select(User).where(User.email == user_data.email))).first()
+    
 
         if not user:
             raise ApplicationException(
@@ -163,8 +170,7 @@ class AuthService():
     @staticmethod
     async def resend_email_verification(email : str , session : AsyncSession):
 
-      result = await session.exec(select(User).where(User.email == email))
-      user = result.first()
+      user = (await session.exec(select(User).where(User.email == email))).first()
 
       if not user or user.is_verified:
             return "If an unverified account exists for that email, a verification link has been sent."
