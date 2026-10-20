@@ -109,6 +109,7 @@ class AuthService():
             )
 
         user.is_verified = True
+        user.is_active = True    
         user.verification_otp = None
         user.verification_token = None
         user.verification_expiry = None
