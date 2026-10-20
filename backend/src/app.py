@@ -9,14 +9,21 @@ from src.core.error_handler import application_exception_handler, generic_except
 
 from src.core.logger import setup_logging
 
-# Initialize colored logging setup
+#* Initialize colored logging setup
 setup_logging()
+
+
+#* Lifespan context manager for FastAPI application
+# before the FastAPI application starts, this function will run and executes its code unless and until it reaches the yield statement.
+# As the yield statement hit, the FastAPI application will start and run its code. When the FastAPI application is shutting down, 
+# the code after the yield statement will execute.
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     # Perform any startup tasks here
     await create_db_and_tables()
     yield
+    print("application stopped")
     # Perform any shutdown tasks here
 
 

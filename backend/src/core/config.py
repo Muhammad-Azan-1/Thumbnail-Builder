@@ -19,3 +19,20 @@ ACCESS_TOKEN_SECRET=os.getenv("ACCESS_TOKEN_SECRET" ,"")
 
 ALOGRITHEM="HS256"
 
+FRONTEND_URL=os.getenv("FRONTEND_URL" ,"http://localhost:3000")
+
+#* mailtrap email setup
+MAILTRAP_USERNAME=os.getenv("MAILTRAP_USERNAME" ,"")
+MAILTRAP_PASSWORD=os.getenv("MAILTRAP_PASSWORD" ,"")    
+MAILTRAP_HOST=os.getenv("MAILTRAP_HOST" ,"")
+MAILTRAP_PORT=os.getenv("MAILTRAP_PORT" ,"")
+MAILTRAP_TOKEN=os.getenv("MAILTRAP_TOKEN" ,"")
+
+
+#* gmail email setup
+GMAIL_USERNAME=os.getenv("GMAIL_USERNAME" ,"")
+GMAIL_PASSWORD=os.getenv("GMAIL_PASSWORD" ,"")    
+
+
+#* email provider setup
+EMAIL_PROVIDER=os.getenv("EMAIL_PROVIDER" ,"mailtrap")

@@ -104,10 +104,11 @@ export default function HomeClient() {
       await deleteAllThumbnailsAsync(thumbnailIds);
 
       // Clear cache and reset state
-      queryClient.setQueryData(["thumbnails", jobId], (old: any) => ({
-        ...old,
-        thumbnails: [],
-      }));
+      // queryClient.setQueryData(["thumbnails", jobId], (old: any) => ({
+      //   ...old,
+      //   thumbnails: [],
+      // }));
+
       queryClient.removeQueries({ queryKey: ["thumbnails", jobId]  });
 
       sessionStorage.removeItem("jobId");

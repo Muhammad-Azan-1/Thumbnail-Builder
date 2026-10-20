@@ -71,7 +71,8 @@ class User(SQLModel , table=True):
 
     verification_token: str = Field(default=None , nullable=True) # for magic link verification
     verification_otp : str = Field(default=None , nullable=True) # for otp verification
-    verification_expiry : datetime = Field(default=None , nullable=True) # for otp verification
+
+    verification_expiry : datetime = Field(default=None , nullable=True) # the expiry time for the verification token or otp
 
     reset_password_token: str = Field(default=None , nullable=True) # for password reset
     reset_password_expiry : datetime = Field(default=None , nullable=True) # for password reset

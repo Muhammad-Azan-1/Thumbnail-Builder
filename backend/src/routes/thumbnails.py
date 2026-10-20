@@ -12,6 +12,7 @@ from sqlmodel import select , delete
 
 
 from ..core.exceptions import ApplicationException, NotFoundException
+from ..core.response import ApiResponse
 
 from ..schemas.thumbnails_schema import (
     JobResponse, ThumbnailResponse, 
@@ -32,7 +33,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/thumbnails", tags=["Thumbnails"])
 
 #1 User upload the Image from frontend we saved that in imagekit
-@router.post("/upload-headshot" , response_model=UploadHeadshotResponse)
+@router.post("/upload-headshot" , response_model=ApiResponse[UploadHeadshotResponse])
 async def upload_headshot(file : UploadFile = File(...)):
     logger.info(f"Received request to upload headshot: {file.filename}")
     file_bytes = await file.read()
@@ -42,11 +43,14 @@ async def upload_headshot(file : UploadFile = File(...)):
         raise ApplicationException(name="IMAGEKIT_SERVICE", message="Failed to upload headshot to ImageKit.", statusCode=500)
     logger.info(f"Headshot uploaded successfully: {upload_response.url}")
 
-    return UploadHeadshotResponse(headshot_url=upload_response.url)
+    return ApiResponse(
+        message="Headshot uploaded successfully.",
+        data=UploadHeadshotResponse(headshot_url=upload_response.url)
+    )
 
 
 # 2 Then user write the prompt and select the style and the no of images to generates and click the generate button 
-@router.post("/job" , response_model=UploadThumbnailResponse)
+@router.post("/job" , response_model=ApiResponse[UploadThumbnailResponse])
 async def generate_thumbnail(
     request : UploadThumbnailRequest,
     session : AsyncSession = Depends(get_async_session)
@@ -79,11 +83,14 @@ async def generate_thumbnail(
 
     # await asyncio.create_task(process_job(job.id)) # THIS IS BLOCKING CODE  # this way we only return the response to the user when all the thumbnails are generated and uploaded successfully. which is not a good idea because it will take a long time to generate the thumbnails and the user will have to wait for the response.
     asyncio.create_task(process_job(job.id)) # schedule task on event loop  # this way we return the response to the user immediately and the thumbnails will be generated and uploaded in the background. which is a good idea because it will not block the user and the user can continue to use the app while the thumbnails are being generated.
-    return UploadThumbnailResponse(job_id=job.id)
+    return ApiResponse(
+        message="Job created successfully. Thumbnails are being generated.",
+        data=UploadThumbnailResponse(job_id=job.id)
+    )
 
 
 # 3 get all thumbnails for a job id
-@router.get("/job/{job_id}" , response_model=JobResponse)
+@router.get("/job/{job_id}" , response_model=ApiResponse[JobResponse])
 async def get_thumbnails(job_id: str, session: AsyncSession = Depends(get_async_session)):
     logger.info(f"Received request to get thumbnails for job_id: {job_id}")
     job = await session.get(Job, job_id)
@@ -108,22 +115,25 @@ async def get_thumbnails(job_id: str, session: AsyncSession = Depends(get_async_
             created_at=t.created_at.isoformat())    
         )
 
-    return JobResponse(
-        id=job.id,
-        user_prompt=job.user_prompt,
-        status=job.status,
-        num_of_thumbnails=job.num_of_thumbnails,
-        headshot_url=job.headshot_url,
-        created_at=job.created_at.isoformat(),
-        error_message=job.error_message,
-        thumbnails=thumbails_list
+    return ApiResponse(
+        message="Job retrieved successfully.",
+        data=JobResponse(
+            id=job.id,
+            user_prompt=job.user_prompt,
+            status=job.status,
+            num_of_thumbnails=job.num_of_thumbnails,
+            headshot_url=job.headshot_url,
+            created_at=job.created_at.isoformat(),
+            error_message=job.error_message,
+            thumbnails=thumbails_list
+        )
     )
 
 
 
 
 # if any thumbnail got failed and user wants to re-generate it
-@router.post('/retry/thumbnail/{thumbnail_id}' , response_model=RetryThumbnailResponse)
+@router.post('/retry/thumbnail/{thumbnail_id}' , response_model=ApiResponse[RetryThumbnailResponse])
 async def retry_thumbnail_generation(thumbnail_id : str  ,session :  AsyncSession = Depends(get_async_session)):
     thumbnail = await session.get(Thumbnails , thumbnail_id)
     if not thumbnail:
@@ -151,12 +161,15 @@ async def retry_thumbnail_generation(thumbnail_id : str  ,session :  AsyncSessio
     ))
 
     #1
-    return RetryThumbnailResponse(thumbnail_id=thumbnail.id , job_id=job.id , status=ThumbnailStatus.PENDING )
+    return ApiResponse(
+        message="Thumbnail retry started.",
+        data=RetryThumbnailResponse(thumbnail_id=thumbnail.id , job_id=job.id , status=ThumbnailStatus.PENDING)
+    )
     
 
     
 # if multiple thumbnail fails and user wants to batch generate
-@router.post('/retry/job/{job_id}' , response_model=list[RetryThumbnailResponse])
+@router.post('/retry/job/{job_id}' , response_model=ApiResponse[list[RetryThumbnailResponse]])
 async def retry_thumbnail_generation(job_id : str  ,session :  AsyncSession = Depends(get_async_session)):
     job = await session.get(Job , job_id)
     if not job:
@@ -184,10 +197,13 @@ async def retry_thumbnail_generation(job_id : str  ,session :  AsyncSession = De
             headshot_url=job.headshot_url,
              thumbnail_id=thumbnail.id
         ))
-    return response
+    return ApiResponse(
+        message=f"Retrying {len(failed_thumbnails)} failed thumbnail(s).",
+        data=response
+    )
 
 
-@router.delete('/delete-batch' , response_model=list[ThumbnailDeleteResponse])
+@router.delete('/delete-batch' , response_model=ApiResponse[list[ThumbnailDeleteResponse]])
 async def delete_batch_thumbnails(thumbnail_ids : ThumbnailDeleteRequest ,  session : AsyncSession = Depends(get_async_session)):
     requested_ids = list(dict.fromkeys(thumbnail_ids.thumbnail_ids)) # to avoid duplicates
     if not requested_ids:
@@ -222,16 +238,19 @@ async def delete_batch_thumbnails(thumbnail_ids : ThumbnailDeleteRequest ,  sess
     await delete_empty_jobs(session, affected_job_ids)
     await session.commit()
 
-    return [
-        ThumbnailDeleteResponse(
-            thumbnail_id=thumbnail_id,
-            message="Thumbnail deleted successfully",
-        )
-        for thumbnail_id in requested_ids
-    ]
+    return ApiResponse(
+        message=f"{len(requested_ids)} thumbnail(s) deleted successfully.",
+        data=[
+            ThumbnailDeleteResponse(
+                thumbnail_id=thumbnail_id,
+                message="Thumbnail deleted successfully",
+            )
+            for thumbnail_id in requested_ids
+        ]
+    )
 
 
-@router.delete('/delete/{thumbnail_id}' , response_model=ThumbnailDeleteResponse)
+@router.delete('/delete/{thumbnail_id}' , response_model=ApiResponse[ThumbnailDeleteResponse])
 async def delete_thumbnail(thumbnail_id : str , session : AsyncSession = Depends(get_async_session)):
     thumbnail = await session.get(Thumbnails , thumbnail_id)
 
@@ -250,7 +269,10 @@ async def delete_thumbnail(thumbnail_id : str , session : AsyncSession = Depends
     await delete_empty_jobs(session , {thumbnail.job_id})
     await session.commit()
 
-    return ThumbnailDeleteResponse(thumbnail_id=thumbnail_id, message="Thumbnail has been deleted successfully")
+    return ApiResponse(
+        message="Thumbnail deleted successfully.",
+        data=ThumbnailDeleteResponse(thumbnail_id=thumbnail_id, message="Thumbnail has been deleted successfully")
+    )
     
 
     
