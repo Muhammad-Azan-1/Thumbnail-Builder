@@ -24,7 +24,7 @@ class AuthService():
             User: The newly created user object.
         """
         #checking if user already exists
-        existing_user =  await session.exec(select(User).where(user_data.email == User.email)).first()
+        existing_user =  (await session.exec(select(User).where(user_data.email == User.email))).first()
 
         if (existing_user):
             raise ApplicationException(
@@ -154,6 +154,13 @@ class AuthService():
                 message="Email you entered is not verified",
                 statusCode=400,
             )
+        
+        if not user.is_active:
+            raise ApplicationException(
+                name="ACCOUNT_INACTIVE",
+                message="Your account is inactive. Please contact support.",
+                statusCode=400,
+            )
 
        #* after succesfully identifying user now we will generate access and refresh token for him
         access_token = create_access_token({'user_id' : user.id , "email" : user.email , "full_name" : user.full_name})
@@ -263,6 +270,7 @@ class AuthService():
 
         user.reset_password_expiry = None
         user.reset_password_token = None
+        user.refresh_token = None
         user.password = hash_password(new_password)
 
         await session.commit()
@@ -272,4 +280,3 @@ class AuthService():
         
     
         
-

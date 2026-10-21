@@ -51,7 +51,7 @@ def generate_verfication_otp() -> tuple[str , str]:
     hashed_otp = hashlib.sha256(raw_otp.encode()).hexdigest()  # Hash the OTP using SHA-256
     return raw_otp, hashed_otp
 
-def generate_verification_token() -> str:
+def generate_verification_token() -> tuple[str , str]:
     """Generate a random verification token for email verification with magic link .
     Returns:
         str: A random verification token.
@@ -60,7 +60,7 @@ def generate_verification_token() -> str:
     hashed_token = hashlib.sha256(raw_token.encode()).hexdigest()   # Hash the token using SHA-256               
     return raw_token, hashed_token   
 
-def generate_reset_password_token()->str:
+def generate_reset_password_token()-> tuple[str , str]:
     """Generate a random  reset password token for reset password  verfication with magic link .
     Returns:
         str: A random verification token.

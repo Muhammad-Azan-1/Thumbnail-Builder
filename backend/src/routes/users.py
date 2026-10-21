@@ -11,8 +11,8 @@ from ..schemas.users import UserRegistrationRequest,  LoginUserResponse, UserLog
 
 from sqlmodel.ext.asyncio.session import AsyncSession
 from ..db.db import get_async_session
-from ..core.config import REFRESH_TOKEN_SECRET , ALOGRITHEM
-from ..core.dependencies import get_current_user
+from ..core.config import ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, ALOGRITHEM
+
 
 
 
@@ -181,11 +181,50 @@ async def google_auth():
 @router.post("/logout", response_model=ApiResponse)
 async def logout(
     response: Response,
-    current_user: User = Depends(get_current_user),
+    request: Request,
     session: AsyncSession = Depends(get_async_session),
 ):
-    current_user.refresh_token = None
-    await session.commit()
+    current_user = None
+    access_token =  request.cookies.get("access_token")
+    refresh_token = request.cookies.get("refresh_token")
+
+    if access_token:
+        try:
+            access_payload = jwt.decode(
+                access_token,
+                ACCESS_TOKEN_SECRET,
+                algorithms=[ALOGRITHEM],
+            )
+        except jwt.InvalidTokenError:
+            pass
+        else:
+            user_id = access_payload.get("user_id")
+            if user_id is not None:
+                current_user = (
+                    await session.exec(select(User).where(User.id == user_id))
+                ).first()
+
+    if current_user is None and refresh_token:
+        try:
+            refresh_payload = jwt.decode(
+                refresh_token,
+                REFRESH_TOKEN_SECRET,
+                algorithms=[ALOGRITHEM],
+            )
+        except jwt.InvalidTokenError:
+            pass
+        else:
+            user_id = refresh_payload.get("user_id")
+            if user_id is not None:
+                refresh_user = (
+                    await session.exec(select(User).where(User.id == user_id))
+                ).first()
+                if refresh_user is not None and refresh_user.refresh_token == refresh_token:
+                    current_user = refresh_user
+
+    if current_user is not None:
+        current_user.refresh_token = None
+        await session.commit()
 
     response.delete_cookie(
         key="access_token",
