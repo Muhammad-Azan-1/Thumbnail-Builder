@@ -60,7 +60,14 @@ def generate_verification_token() -> str:
     hashed_token = hashlib.sha256(raw_token.encode()).hexdigest()   # Hash the token using SHA-256               
     return raw_token, hashed_token   
 
-
+def generate_reset_password_token()->str:
+    """Generate a random  reset password token for reset password  verfication with magic link .
+    Returns:
+        str: A random verification token.
+    """
+    raw_token = secrets.token_hex(32)
+    hashed_token = hashlib.sha256(raw_token.encode()).hexdigest()  
+    return raw_token, hashed_token   
 
 
 

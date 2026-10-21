@@ -33,6 +33,11 @@ class UserPublic(BaseModel):
 class LoginUserResponse(UserPublic):
      access_token : str
 
+class ResetPasswordRequest(BaseModel):
+     token : str
+     new_password : str
+
+
 
 class EmailVerificationRequest(BaseModel):
     verification_token: str | None = None
@@ -43,7 +48,6 @@ class EmailVerificationRequest(BaseModel):
         if (self.verification_token is None) == (self.otp is None):
             raise ValueError("Provide either verification_token or otp, but not both.")
         return self
-
 
 
 

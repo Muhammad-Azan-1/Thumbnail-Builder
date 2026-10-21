@@ -76,6 +76,7 @@ class User(SQLModel , table=True):
 
     reset_password_token: str = Field(default=None , nullable=True) # for password reset
     reset_password_expiry : datetime = Field(default=None , nullable=True) # for password reset
+    
     refresh_token: str = Field(default=None , nullable=True) 
     
     is_verified : bool = Field(default=False , nullable=False)

@@ -1,16 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException , Response
+from fastapi import APIRouter, Depends , Response , Cookie , Request 
 from src.models.models import User
 import logging
-
+import jwt
+from sqlmodel import select , delete
 
 from src.services.auth_service import AuthService
 from ..core.response import ApiResponse
 from ..core.exceptions import (ApplicationException, NotFoundException , UnauthorizedException)
-from ..schemas.users import UserRegistrationRequest,  LoginUserResponse, UserLoginRequest ,UserPublic,EmailVerificationRequest, ResendEmailVerificationRequest
+from ..schemas.users import UserRegistrationRequest,  LoginUserResponse, UserLoginRequest , ResetPasswordRequest ,UserPublic,EmailVerificationRequest, ResendEmailVerificationRequest
 
 from sqlmodel.ext.asyncio.session import AsyncSession
 from ..db.db import get_async_session
-
+from ..core.config import REFRESH_TOKEN_SECRET , ALOGRITHEM
+from ..core.dependencies import get_current_user
 
 
 
@@ -81,5 +83,126 @@ async def resend_email_verification(request: ResendEmailVerificationRequest, ses
     return ApiResponse(
         success=True,                 
         message=result,
+        data={},
+    )
+
+
+# async def refresh_access_token(request: Request):
+#     refresh_token = request.cookies.get("refresh_token")
+
+#* or
+@router.post("/refresh-access-token" , response_model=ApiResponse[dict])
+async def refresh_access_token( response : Response , refresh_token : str | None = Cookie(default=None) , session : AsyncSession = Depends(get_async_session)): #* this parameter tells fast_api to look cooki named refresh_token in the incoming request
+
+    if not refresh_token:
+        raise ApplicationException(
+            name="MISSING_REFRESH_TOKEN",
+            message="Refresh token is missing.",
+            statusCode=401,
+        )
+
+    try:
+        payload = jwt.decode(
+        refresh_token,
+        REFRESH_TOKEN_SECRET,
+        algorithms=[ALOGRITHEM],
+
+        )
+    except jwt.ExpiredSignatureError:
+        # Token was valid but has expired → user needs to refresh or re-login
+            raise UnauthorizedException(message="Refresh token has expired. Please log in again.")
+    except jwt.InvalidTokenError:
+        # Token is malformed, wrong signature, or tampered with
+            raise UnauthorizedException(message="Refresh token has expired. Please log in again.")
+    
+    user_id = payload.get("user_id")
+    if user_id is None:
+            raise UnauthorizedException(message="Could not validate credentials")
+
+    user = (await session.exec(select(User).where(User.id == user_id))).first()
+  
+    if not user or user.refresh_token != refresh_token:
+           raise UnauthorizedException(message="refresh token has been used or expired")
+         
+            
+    result = await AuthService.refresh_acess_token(user , session)
+
+    response.set_cookie(
+        key="access_token",
+        value=result['access_token'], 
+        httponly=True,
+        secure=False, 
+        samesite="lax",
+        max_age=60*60*24
+    )
+
+    response.set_cookie(                                                                                      
+        key="refresh_token",                                                                                  
+        value=result["refresh_token"],                                                                        
+        httponly=True, secure=False, samesite="lax",                                                          
+        max_age=60 * 60 * 24 * 7,                                                                             
+        )       
+
+    return ApiResponse(                                                                                       
+        success=True,                                                                                         
+        message="access token has been generated",                                                                           
+        data={'access_token' : result['access_token']}
+                      
+        )         
+
+
+
+
+    
+@router.post('/forgot-password-verfication' , response_model=ApiResponse)
+async def forgot_password_verfication(request: ResendEmailVerificationRequest , session : AsyncSession = Depends(get_async_session)):
+ 
+    result = await AuthService.forgot_password_verfication(request.email, session)
+    
+    return ApiResponse(
+    success=True,                 
+     message=result,
+         )
+
+@router.post("/reset-password" , response_model=ApiResponse)
+async def reset_password(request : ResetPasswordRequest, session : AsyncSession = Depends(get_async_session)):
+     result  = await AuthService.reset_password(request.token , request.new_password , session)
+     return ApiResponse(
+        message=result
+     )
+          
+
+@router.post("/google-auth")
+async def google_auth():
+     pass
+
+
+
+@router.post("/logout", response_model=ApiResponse)
+async def logout(
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    current_user.refresh_token = None
+    await session.commit()
+
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+        httponly=True,
+        secure=False,
+        samesite="lax",
+    )
+    response.delete_cookie(
+        key="refresh_token",
+        path="/",
+        httponly=True,
+        secure=False,
+        samesite="lax",
+    )
+
+    return ApiResponse(
+        message="Logged out successfully.",
         data={},
     )

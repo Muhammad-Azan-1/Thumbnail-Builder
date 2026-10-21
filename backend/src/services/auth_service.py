@@ -5,7 +5,7 @@ from ..schemas.users import UserRegistrationRequest, UserLoginRequest
 from ..core.security import (                                                        
     generate_verfication_otp, hash_password, verify_password,                                                  
     create_access_token, create_refresh_token,                                       
-    generate_verfication_otp, generate_verification_token      
+    generate_verfication_otp, generate_verification_token , generate_reset_password_token     
 )                                                                                    
 from datetime import datetime, timedelta, timezone
 from ..core.exceptions import ApplicationException
@@ -45,7 +45,7 @@ class AuthService():
         password=hash_password(user_data.password),
         verification_otp=hashed_otp,
         verification_token=hashed_token,
-        verification_expiry=datetime.now(timezone.utc) + timedelta(minutes=1)  # OTP and token expiry set to 1 minutes from now
+        verification_expiry=datetime.now(timezone.utc) + timedelta(minutes=5)  # OTP and token expiry set to 1 minutes from now
         )
 
         session.add(user)
@@ -64,7 +64,7 @@ class AuthService():
 
 
     @staticmethod
-    async def verify_email_verification(otp: str, token: str, session: AsyncSession) -> User:
+    async def verify_email_verification(otp: str | None, token: str | None, session: AsyncSession) -> User:
         """Verify the user's email using the provided OTP and verification token.
         Args:
             otp (str): The OTP provided by the user.
@@ -181,7 +181,7 @@ class AuthService():
 
       user.verification_otp = hashed_otp
       user.verification_token = hashed_token
-      user.verification_expiry = datetime.now(timezone.utc) + timedelta(minutes=1)
+      user.verification_expiry = datetime.now(timezone.utc) + timedelta(minutes=5)
 
       await EmailVerificationService.send_email_verfication(
           otp=raw_otp,
@@ -192,3 +192,84 @@ class AuthService():
       await session.commit()
 
       return "If an unverified account exists for that email, a verification link has been sent."
+
+    @staticmethod
+    async def refresh_acess_token(user  , session: AsyncSession):
+    
+        if not user:
+            raise ApplicationException(
+        name="INVALID_REFRESH_TOKEN",
+        message="Refresh token is invalid or expired. Please log in again.",
+        statusCode=401,
+        )
+
+        access_token = create_access_token({'user_id' : user.id , "email" : user.email , "full_name" : user.full_name})
+        refresh_token = create_refresh_token({'user_id' : user.id})
+
+        user.refresh_token = refresh_token
+        await session.commit()
+
+        return {
+            'refresh_token' : refresh_token,
+            'access_token' : access_token
+        }
+
+    @staticmethod
+    async def forgot_password_verfication(email : str , session : AsyncSession):
+
+        user = (await session.exec(select(User).where(User.email == email))).first()
+
+        if not user:
+            return "If an unverified account exists for that email, a password reset link has been sent."
+
+
+        if user.auth_provider.lower() == 'google':
+            return "If an unverified account exists for that email, a password reset link has been sent."
+        
+
+        raw_token, hashed_token  = generate_reset_password_token()
+        user.reset_password_token = hashed_token 
+        user.reset_password_expiry = datetime.now(timezone.utc) + timedelta(minutes=5)
+
+        await EmailVerificationService.reset_password_email(raw_token , user.email , user.full_name)
+
+        await session.commit()
+
+        return "If an unverified account exists for that email, a password reset link has been sent."
+
+
+    @staticmethod
+    async def reset_password(token : str , new_password : str ,  session:AsyncSession):
+        if not token or not new_password:
+            raise ApplicationException(
+            name="TOKEN_OR_PASSOWRD_MISSING",
+            message="Please provide token and password",
+            statusCode=401
+            )
+        hashed_reset_token = hashlib.sha256(token.encode()).hexdigest()  
+        expires_after = datetime.now(timezone.utc)
+
+        user = (await session.exec(select(User).where(
+            User.reset_password_token == hashed_reset_token ,
+            User.reset_password_expiry >  expires_after 
+            ))).first()
+
+        if not user:
+             raise ApplicationException(
+                name="INVALED_TOKEN_OR_EXPIRED",
+                message="Token is invaled or expired",
+                statusCode=401
+                    )
+
+        user.reset_password_expiry = None
+        user.reset_password_token = None
+        user.password = hash_password(new_password)
+
+        await session.commit()
+
+        return "Your password has been changed"
+
+        
+    
+        
+
