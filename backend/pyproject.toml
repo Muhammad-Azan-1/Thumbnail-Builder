@@ -12,6 +12,7 @@ dependencies = [
     "asyncpg>=0.32.0",
     "fastapi>=0.141.1",
     "fastapi-mail>=1.6.8",
+    "google-auth>=2.62.0",
     "greenlet>=3.5.5",
     "httpx>=0.28.1",
     "imagekitio>=5.9.0",

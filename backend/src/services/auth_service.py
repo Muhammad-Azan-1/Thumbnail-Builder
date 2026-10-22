@@ -1,6 +1,6 @@
 from sqlmodel import select  
 from sqlmodel.ext.asyncio.session import AsyncSession                                                                                         
-from ..models.models import User                
+from ..models.models import AuthProvider, User
 from ..schemas.users import UserRegistrationRequest, UserLoginRequest                                  
 from ..core.security import (                                                        
     generate_verfication_otp, hash_password, verify_password,                                                  
@@ -11,6 +11,15 @@ from datetime import datetime, timedelta, timezone
 from ..core.exceptions import ApplicationException
 from .email_verfication_service import EmailVerificationService
 import hashlib
+
+
+from google.oauth2 import id_token
+from google.auth.transport import requests as g_requests
+from sqlalchemy.exc import IntegrityError
+import asyncio
+
+
+from ..core.config import GOOGLE_CLIENT_ID
 
 class AuthService():
 
@@ -166,7 +175,8 @@ class AuthService():
         access_token = create_access_token({'user_id' : user.id , "email" : user.email , "full_name" : user.full_name})
         refresh_token = create_refresh_token({'user_id' : user.id})    
 
-        user.refresh_token = refresh_token # we can also hash it before saving to DB  
+        user.refresh_token = refresh_token # we can also hash it before saving to DB
+        user.last_login_provider = AuthProvider.LOCAL
         await session.commit()
 
         return {"access_token": access_token,                                                                         
@@ -278,5 +288,103 @@ class AuthService():
         return "Your password has been changed"
 
         
-    
+    @staticmethod 
+    async def google_auth(token : str , session : AsyncSession):
+        try:
+            info = await asyncio.to_thread(
+                id_token.verify_oauth2_token,
+                token,
+                g_requests.Request(),
+                GOOGLE_CLIENT_ID,
+                clock_skew_in_seconds=10
+        )
+        except ValueError as e:
+            raise ApplicationException(
+                name="INVALID_GOOGLE_TOKEN",
+                message="Google credential is invalid or expired",
+                statusCode=401,
+                errors=[str(e)]
+                ) 
+        
+        if info.get("email_verified") is not True:
+            raise ApplicationException(
+                name="GOOGLE_EMAIL_NOT_VERFIED",
+                message="Google Email is not verfied",
+                statusCode=401,
+            )
+
+        google_id = info.get("sub")
+        email = info.get("email")
+        if not isinstance(google_id, str) or not google_id.strip():
+            raise ApplicationException(
+                name="INVALID_GOOGLE_TOKEN",
+                message="Google credential is missing the account identifier",
+                statusCode=401,
+            )
+        if not isinstance(email, str) or not email.strip():
+            raise ApplicationException(
+                name="INVALID_GOOGLE_TOKEN",
+                message="Google credential is missing the email address",
+                statusCode=401,
+            )
+        email = email.lower()
+
+
+        user = (await session.exec(select(User).where(User.google_id == google_id))).first()
+        if not user:
+            user = (await session.exec(select(User).where(User.email == email))).first()
+
+        
+        if user:
+            if user.auth_provider == "local":
+                raise ApplicationException(
+                name="EMAIL_ALREADY_EXISTS",
+                message="User with this Email already exists, Please login with your email and password",
+                statusCode=409
+                        )
+            if user.auth_provider == 'google' and user.google_id != google_id:
+                raise ApplicationException(
+                name="GOOGLE_ACCOUNT_MISMATCH",
+                message="google account mismatch",
+                statusCode=401
+                        )
+            if  not user.is_active:
+               raise ApplicationException(
+                name="ACCOUNT_DISABLED",
+                message="Your account is disabled",
+                statusCode=403,
+            )
+        else:
+            user = User(
+                full_name=info.get("name") or email.split("@", 1)[0],
+                email=email,
+                password=None,
+                auth_provider=AuthProvider.GOOGLE,
+                google_id=google_id,
+                is_active=True,
+                is_verified=True,
+                avatar_url=info.get("picture") or None,
+                
+            )
+            session.add(user)
+            
+        user.last_login_provider = AuthProvider.GOOGLE
+        access_token = create_access_token({"user_id" : user.id , 'full_name' : user.full_name , 'email' : email})
+        refresh_token = create_refresh_token({"user_id" : user.id})
+        user.refresh_token = refresh_token
+
+       
+        await session.commit()
+        await session.refresh(user)
+
+        return {"user" : user , "access_token" : access_token , 'refresh_token' : refresh_token}
+
+        
+
+            
+
+
+
+
+        
         

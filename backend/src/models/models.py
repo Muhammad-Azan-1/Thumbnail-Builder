@@ -80,7 +80,8 @@ class User(SQLModel , table=True):
     refresh_token: str = Field(default=None , nullable=True) 
     
     is_verified : bool = Field(default=False , nullable=False)
-    is_active : bool = Field(default=False , nullable=False) #
+    is_active : bool = Field(default=False , nullable=False) 
+    last_login_provider : Optional[AuthProvider] = Field(default=None , nullable=True)
   
 
     created_at: datetime = Field(default_factory=_now , nullable=False)

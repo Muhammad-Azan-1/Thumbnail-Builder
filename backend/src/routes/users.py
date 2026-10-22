@@ -7,7 +7,7 @@ from sqlmodel import select , delete
 from src.services.auth_service import AuthService
 from ..core.response import ApiResponse
 from ..core.exceptions import (ApplicationException, NotFoundException , UnauthorizedException)
-from ..schemas.users import UserRegistrationRequest,  LoginUserResponse, UserLoginRequest , ResetPasswordRequest ,UserPublic,EmailVerificationRequest, ResendEmailVerificationRequest
+from ..schemas.users import UserRegistrationRequest,  LoginUserResponse, UserLoginRequest , GoogleLoginIn , ResetPasswordRequest ,UserPublic,EmailVerificationRequest, ResendEmailVerificationRequest
 
 from sqlmodel.ext.asyncio.session import AsyncSession
 from ..db.db import get_async_session
@@ -172,9 +172,34 @@ async def reset_password(request : ResetPasswordRequest, session : AsyncSession 
      )
           
 
-@router.post("/google-auth")
-async def google_auth():
-     pass
+@router.post("/google-auth" , response_model=ApiResponse[LoginUserResponse])
+async def google_auth(data : GoogleLoginIn , response : Response , session : AsyncSession = Depends(get_async_session)):
+    result  = await AuthService.google_auth(data.credential , session)
+
+    response.set_cookie(
+        key="access_token",
+        value=result['access_token'],
+        httponly=False,
+        secure=False, 
+        samesite="lax",
+        max_age=60*60*24
+     )
+
+    response.set_cookie(
+        key="refresh_token",
+        value=result['refresh_token'],
+        httponly=False,
+        secure=False, 
+        samesite="lax",
+        max_age=60 * 60 * 24 * 7,                
+          )
+
+    return ApiResponse(
+     message="User has been loggedIn successfully",
+     data=LoginUserResponse(access_token=result['access_token'] , **UserPublic.model_validate(result['user']).model_dump())  
+    )
+     
+
 
 
 

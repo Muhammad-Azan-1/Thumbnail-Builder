@@ -36,3 +36,6 @@ GMAIL_PASSWORD=os.getenv("GMAIL_PASSWORD" ,"")
 
 #* email provider setup
 EMAIL_PROVIDER=os.getenv("EMAIL_PROVIDER" ,"mailtrap")
+
+#* google clinet id
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID " , None)

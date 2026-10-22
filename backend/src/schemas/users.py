@@ -37,6 +37,8 @@ class ResetPasswordRequest(BaseModel):
      token : str
      new_password : str
 
+class GoogleLoginIn(BaseModel):
+    credential: str
 
 
 class EmailVerificationRequest(BaseModel):
