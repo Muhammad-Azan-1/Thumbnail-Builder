@@ -1,0 +1,430 @@
+from sqlmodel import select  
+from sqlmodel.ext.asyncio.session import AsyncSession                                                                                         
+from ..models.models import AuthProvider, User
+from ..schemas.users import UserRegistrationRequest, UserLoginRequest                                  
+from ..core.security import (                                                        
+    generate_verfication_otp, hash_password, verify_password,                                                  
+    create_access_token, create_refresh_token,                                       
+    generate_verfication_otp, generate_verification_token , generate_reset_password_token     
+)                                                                                    
+from datetime import datetime, timedelta, timezone
+from ..core.exceptions import ApplicationException
+from .email_verfication_service import EmailVerificationService
+import hashlib
+
+
+from google.oauth2 import id_token
+from google.auth.transport import requests as g_requests
+import asyncio
+
+from ..db.db import _now
+
+
+from ..core.config import GOOGLE_CLIENT_ID
+
+class AuthService():
+
+    @staticmethod
+    async def register_user(user_data : UserRegistrationRequest , session : AsyncSession) -> User:
+        """Register a new user in the database.
+        Args:
+            user_data (UserRegistrationRequest): The user registration data.
+            session (AsyncSession): The database session for executing queries.
+        Returns:
+            User: The newly created user object.
+        """
+        #checking if user already exists
+        existing_user =  (await session.exec(select(User).where(user_data.email == User.email))).first()
+
+        if (existing_user):
+            raise ApplicationException(
+                name="USER_ALREADY_EXISTS",
+                message="A user with this email already exists.",
+                statusCode=400,
+              
+            )
+
+        if (
+        len(user_data.password) < 5
+        or not any(char.isalpha() for char in user_data.password)
+        or not any(char.isdigit() for char in user_data.password)
+        ):
+            raise ApplicationException(
+                name="PASSWORD_IS_NOT_VALID",
+                message="password must be at least 5 character long. and must contain a digit and a alphabate ",
+                statusCode=400,
+            )
+
+
+        # create OTP and and verification token for email verification
+        raw_otp , hashed_otp = generate_verfication_otp()
+        raw_token, hashed_token  = generate_verification_token()
+
+        # create a new User instance with the provided data and hashed password
+        user = User(
+        full_name=user_data.full_name,
+        email=user_data.email,
+        password=hash_password(user_data.password),
+        verification_otp=hashed_otp,
+        verification_token=hashed_token,
+        verification_expiry=_now() + timedelta(minutes=5)  # OTP and token expiry set to 5 minutes from now
+        )
+
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+
+        # Send email verfication email with magic link and OTP to the user
+        await EmailVerificationService.send_email_verfication(
+            otp=raw_otp,
+            verification_token=raw_token,
+            recipient_email=user_data.email,
+            recipient_name=user_data.full_name
+        )
+
+        return user
+
+
+    @staticmethod
+    async def verify_email_verification(otp: str | None, token: str | None, session: AsyncSession) -> User:
+        """Verify the user's email using the provided OTP and verification token.
+        Args:
+            otp (str): The OTP provided by the user.
+            token (str): The verification token provided by the user.
+            session (AsyncSession): The database session for executing queries.
+        Returns:
+            User: Sucessfully verfied message
+        Raises:
+            ApplicationException: If the OTP or token is invalid or expired. or if email is already verfied
+        """
+
+        expires_after = _now()
+        if otp:
+            hashed_otp = hashlib.sha256(otp.encode()).hexdigest()
+            query = select(User).where(
+                User.verification_otp == hashed_otp,
+                User.verification_expiry > expires_after,
+            )
+        else:
+            hashed_token = hashlib.sha256(token.encode()).hexdigest()
+            query = select(User).where(
+                User.verification_token == hashed_token,
+                User.verification_expiry > expires_after,
+            )
+
+        user = (await session.exec(query)).first()
+        
+
+        if not user:
+            raise ApplicationException(
+                name="INVALID_VERIFICATION_TOKEN",
+                message="Invalid or expired verification token.",
+                statusCode=400,
+              
+            )
+
+        if(user.is_verified):
+            raise ApplicationException(
+                name="EMAIL_ALREADY_VERIFIED",
+                message="Email is already verified.",
+                statusCode=400,
+            )
+
+        user.is_verified = True
+        user.is_active = True    
+        user.verification_otp = None
+        user.verification_token = None
+        user.verification_expiry = None
+
+        await session.commit()
+        return "Email verfied successfully"
+        
+
+    @staticmethod
+    async def login_user(user_data : UserLoginRequest , session : AsyncSession) -> dict:
+        """Authenticate a user and generate access and refresh tokens.
+        Args:
+            user_data (UserLoginRequest): The user login data.
+            session (AsyncSession): The database session for executing queries.
+        Returns:
+            dict: A dictionary containing the access and refresh tokens.    
+        """
+        # fetch user first
+
+        user = (await session.exec(select(User).where(User.email == user_data.email))).first()
+    
+
+        if not user:
+            raise ApplicationException(
+                name="INVALED_EMAIL_OR_PASSWORD",
+                message="Invaled Email or Password",
+                statusCode=400,
+            )
+
+
+        if user.password is None or not verify_password(user_data.password , user.password):
+            raise ApplicationException(
+                name="INVALED_EMAIL_OR_PASSWORD",
+                message="Invaled Email or Password",
+                statusCode=400,
+            )
+
+
+        if not user.is_verified:
+           raise ApplicationException(
+                name="EMAIL_NOT_VERIFIED",
+                message="Email you entered is not verified",
+                statusCode=400,
+            )
+        
+        if not user.is_active:
+            raise ApplicationException(
+                name="ACCOUNT_INACTIVE",
+                message="Your account is inactive. Please contact support.",
+                statusCode=400,
+            )
+
+       #* after succesfully identifying user now we will generate access and refresh token for him
+        access_token = create_access_token({'user_id' : user.id , "email" : user.email , "full_name" : user.full_name})
+        refresh_token = create_refresh_token({'user_id' : user.id})    
+
+        user.refresh_token = refresh_token # we can also hash it before saving to DB
+        user.last_login_provider = AuthProvider.LOCAL
+        await session.commit()
+
+        return {"access_token": access_token,                                                                         
+               "refresh_token": refresh_token,                                                                       
+               "user": user,         
+             }
+
+
+    @staticmethod
+    async def resend_email_verification(email : str , session : AsyncSession):
+
+      user = (await session.exec(select(User).where(User.email == email))).first()
+
+      if not user or user.is_verified:
+            return "If an unverified account exists for that email, a verification link has been sent."
+
+      raw_otp, hashed_otp = generate_verfication_otp()
+      raw_token, hashed_token = generate_verification_token()
+
+      user.verification_otp = hashed_otp
+      user.verification_token = hashed_token
+      user.verification_expiry = _now() + timedelta(minutes=5)
+
+      await EmailVerificationService.send_email_verfication(
+          otp=raw_otp,
+          verification_token=raw_token,
+          recipient_email=user.email,
+          recipient_name=user.full_name,
+      )
+      await session.commit()
+
+      return "If an unverified account exists for that email, a verification link has been sent."
+
+    @staticmethod
+    async def refresh_acess_token(user  , session: AsyncSession):
+    
+        if not user:
+            raise ApplicationException(
+        name="INVALID_REFRESH_TOKEN",
+        message="Refresh token is invalid or expired. Please log in again.",
+        statusCode=401,
+        )
+
+        access_token = create_access_token({'user_id' : user.id , "email" : user.email , "full_name" : user.full_name})
+        refresh_token = create_refresh_token({'user_id' : user.id})
+
+        user.refresh_token = refresh_token
+        await session.commit()
+
+        return {
+            'refresh_token' : refresh_token,
+            'access_token' : access_token
+        }
+
+    @staticmethod
+    async def forgot_password_verfication(email : str , session : AsyncSession):
+
+        user = (await session.exec(select(User).where(User.email == email))).first()
+
+        if not user:
+            return "If an unverified account exists for that email, a password reset link has been sent."
+
+
+        if user.auth_provider.lower() == 'google':
+            return "If an unverified account exists for that email, a password reset link has been sent."
+        
+
+        raw_token, hashed_token  = generate_reset_password_token()
+        user.reset_password_token = hashed_token 
+        user.reset_password_expiry = _now() + timedelta(minutes=5)
+
+        await EmailVerificationService.reset_password_email(raw_token , user.email , user.full_name)
+
+        await session.commit()
+
+        return "If an unverified account exists for that email, a password reset link has been sent."
+
+
+    @staticmethod
+    async def reset_password(token : str , new_password : str ,  session:AsyncSession):
+        if not token or not new_password:
+            raise ApplicationException(
+            name="TOKEN_OR_PASSOWRD_MISSING",
+            message="Please provide token and password",
+            statusCode=401
+            )
+        
+        if (
+            len(new_password) < 5
+            or not any(char.isalpha() for char in new_password)
+            or not any(char.isdigit() for char in new_password)
+        ):
+            raise ApplicationException(
+                name="PASSWORD_IS_NOT_VALID",
+                message="password must be at least 5 character long. and must contain a digit and a alphabate ",
+                statusCode=400,
+            )
+
+        hashed_reset_token = hashlib.sha256(token.encode()).hexdigest()  
+        expires_after = _now()
+
+        user = (await session.exec(select(User).where(
+            User.reset_password_token == hashed_reset_token ,
+            User.reset_password_expiry >  expires_after 
+            ))).first()
+
+        if not user:
+             raise ApplicationException(
+                name="INVALED_TOKEN_OR_EXPIRED",
+                message="Token is invaled or expired",
+                statusCode=401
+                    )
+
+        user.reset_password_expiry = None
+        user.reset_password_token = None
+        user.refresh_token = None
+        user.password = hash_password(new_password)
+
+        await session.commit()
+
+        return "Your password has been changed"
+
+        
+    @staticmethod 
+    async def google_auth(token : str , session : AsyncSession):
+        try:
+            info = await asyncio.to_thread(
+                id_token.verify_oauth2_token,
+                token,
+                g_requests.Request(),
+                GOOGLE_CLIENT_ID,
+                clock_skew_in_seconds=10
+        )
+        except ValueError as e:
+            raise ApplicationException(
+                name="INVALID_GOOGLE_TOKEN",
+                message="Google credential is invalid or expired",
+                statusCode=401,
+                errors=[str(e)]
+                ) 
+        
+        if info.get("email_verified") is not True:
+            raise ApplicationException(
+                name="GOOGLE_EMAIL_NOT_VERFIED",
+                message="Google Email is not verfied",
+                statusCode=401,
+            )
+        print("="*30)
+        print("INFO" , info)
+        print("="*30)
+        
+        google_id = info.get("sub")
+        email = info.get("email")
+
+        if not isinstance(google_id, str) or not google_id.strip():
+            raise ApplicationException(
+                name="INVALID_GOOGLE_TOKEN",
+                message="Google credential is missing the account identifier",
+                statusCode=401,
+            )
+        if not isinstance(email, str) or not email.strip():
+            raise ApplicationException(
+                name="INVALID_GOOGLE_TOKEN",
+                message="Google credential is missing the email address",
+                statusCode=401,
+            )
+        
+        email = email.lower()
+
+
+        user = (await session.exec(select(User).where(User.google_id == google_id))).first()
+        if not user:
+            user = (await session.exec(select(User).where(User.email == email))).first()
+
+        print("="*30)
+        print("FOUND USER" , user)
+        print("="*30)
+        
+        if user:
+            if user.auth_provider == "local":
+                raise ApplicationException(
+                name="EMAIL_ALREADY_EXISTS",
+                message="User with this Email already exists, Please login with your email and password",
+                statusCode=409
+                        )
+            if user.auth_provider == 'google' and user.google_id != google_id:
+                raise ApplicationException(
+                name="GOOGLE_ACCOUNT_MISMATCH",
+                message="google account mismatch",
+                statusCode=401
+                        )
+            if  not user.is_active:
+               raise ApplicationException(
+                name="ACCOUNT_DISABLED",
+                message="Your account is disabled",
+                statusCode=403,
+            )
+        else:
+            user = User(
+                full_name=info.get("name") or email.split("@", 1)[0],
+                email=email,
+                password=None,
+                auth_provider=AuthProvider.GOOGLE,
+                google_id=google_id,
+                is_active=True,
+                is_verified=True,
+                avatar_url=info.get("picture") or None,
+                
+            )
+            session.add(user)
+            
+        user.last_login_provider = AuthProvider.GOOGLE
+        access_token = create_access_token({"user_id" : user.id , 'full_name' : user.full_name , 'email' : email})
+        refresh_token = create_refresh_token({"user_id" : user.id})
+        user.refresh_token = refresh_token
+
+       
+        await session.commit()
+        await session.refresh(user)
+
+        return {"user" : user , "access_token" : access_token , 'refresh_token' : refresh_token}
+
+        
+
+            
+
+
+
+
+        
+        
+
+
+
+# The HTTP 422 Unprocessable Content (formerly known as "Unprocessable Entity")
+# client error status code indicates that the server understands the request
+# and its syntax is perfectly correct, but it cannot process the contained 
+# instructions due to semantic or data validation errors.

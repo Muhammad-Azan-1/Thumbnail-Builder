@@ -1,6 +1,6 @@
 from openai import AsyncOpenAI
 import base64
-from ..config import OPENAI_API_KEY
+from ..core.config import OPENAI_API_KEY
 import logging
 from ..core.exceptions import ApplicationException 
 

@@ -5,7 +5,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine , async_sessionmaker
 from sqlmodel import  SQLModel 
 
-from ..config import DATABASE_URL
+from ..core.config import DATABASE_URL
 
 import logging
 
@@ -15,10 +15,10 @@ def _uuid() -> str:
     return str(uuid4())
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-engine = create_async_engine(DATABASE_URL)
+engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
 async_session_maker = async_sessionmaker(engine ,  class_=AsyncSession  , expire_on_commit=False)
 
 

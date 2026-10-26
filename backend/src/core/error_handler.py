@@ -1,8 +1,6 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from .exceptions import ApplicationException
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
 import logging
 
 logger = logging.getLogger(__name__)
@@ -21,6 +19,7 @@ async def application_exception_handler(request: Request, exc: ApplicationExcept
     return JSONResponse(
         status_code=exc.statusCode,
         content={
+            "success": False,
             "name": exc.name,
             "message": exc.message,
             "statusCode": exc.statusCode,
@@ -39,6 +38,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=500,
         content={
+            "success": False,
             "name": "INTERNAL_SERVER_ERROR",
             "message": "An unexpected error occurred",
             "statusCode": 500,

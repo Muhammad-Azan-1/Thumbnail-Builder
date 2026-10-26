@@ -2,8 +2,6 @@ from pydantic import BaseModel
 from typing import Optional
 
 
-
-
 class UploadHeadshotResponse(BaseModel):
     headshot_url: str
     message: Optional[str] = "Headshot uploaded successfully."
@@ -18,8 +16,6 @@ class UploadThumbnailRequest(BaseModel):
 class UploadThumbnailResponse(BaseModel):
     job_id: str
 
-
-
 class ThumbnailResponse(BaseModel):
     id: str
     job_id: str
@@ -29,7 +25,6 @@ class ThumbnailResponse(BaseModel):
     error_message: Optional[str] = None
     variants: Optional[dict] = None
     created_at: str
-
 
 class JobResponse(BaseModel):
     id: str
@@ -42,12 +37,10 @@ class JobResponse(BaseModel):
     thumbnails: list[ThumbnailResponse] = []
 
 
-
 class RetryThumbnailResponse(BaseModel):
     thumbnail_id : str
     job_id : str
     status : str
-
 
 class ThumbnailDeleteRequest(BaseModel):
     thumbnail_ids: list[str]

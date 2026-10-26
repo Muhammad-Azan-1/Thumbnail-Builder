@@ -22,7 +22,7 @@ export async function FETCH_API_METHOD<T>(endpoint : string , options? : Request
           try {
             const errorData = await response.json();
             console.log("errorData : ", errorData)
-            errorMessage = errorData.message || errorData.detail || errorData.error || errorMessage;
+            errorMessage = errorData.message 
           } catch {
             const text = await response.text();
             if (text) errorMessage = text;
@@ -32,7 +32,8 @@ export async function FETCH_API_METHOD<T>(endpoint : string , options? : Request
           throw new Error(errorMessage);
         }
   
-        return await response.json();
+        const result = await response.json();
+        return result.data as T;
         
       } catch (error: unknown) {
         // 3. ALWAYS re-throw the error! Do not 'return' inside catch!

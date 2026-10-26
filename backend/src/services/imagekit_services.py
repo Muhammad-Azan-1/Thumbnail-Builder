@@ -1,5 +1,5 @@
 from imagekitio import ImageKit
-from ..config import IMAGEKIT_PRIVATE_KEY 
+from ..core.config import IMAGEKIT_PRIVATE_KEY 
 from ..core.exceptions import ApplicationException
 import logging
 

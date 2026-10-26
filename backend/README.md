@@ -42,3 +42,6 @@
       • process_job manages batch concurrency.
       • generate_single_thumbnail handles 1 image generation.
   
+
+
+  

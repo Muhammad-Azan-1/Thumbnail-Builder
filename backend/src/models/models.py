@@ -12,11 +12,15 @@ class ThumbnailStatus(str , Enum):
     FAILED = "failed"
 
 class JobStatus(str , Enum):
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
+        PENDING = "pending"
+        PROCESSING = "processing"
+        COMPLETED = "completed"
+        FAILED = "failed"
 
+class AuthProvider(str, Enum):
+    LOCAL = "local"
+    GOOGLE = "google"
+    
 # store the thumbnail information in the database
 
 class Thumbnails(SQLModel , table=True):
@@ -58,7 +62,29 @@ class Job(SQLModel , table=True):
 class User(SQLModel , table=True):
     __tablename__ = "user"
     id: str = Field(default_factory=_uuid , primary_key=True , index=True)
+    full_name: str = Field(default=None , nullable=False)
+    email: str = Field(default=None , nullable=False , unique=True , index=True)
+    password: Optional[str] = Field(default=None , nullable=True)
+    auth_provider: AuthProvider = Field(default=AuthProvider.LOCAL , nullable=False)
+    google_id: str = Field(default=None , nullable=True)
+    avatar_url: str = Field(default=None , nullable=True)
 
+    verification_token: str = Field(default=None , nullable=True) # for magic link verification
+    verification_otp : str = Field(default=None , nullable=True) # for otp verification
 
+    verification_expiry : datetime = Field(default=None , nullable=True) # the expiry time for the verification token or otp
+
+    reset_password_token: str = Field(default=None , nullable=True) # for password reset
+    reset_password_expiry : datetime = Field(default=None , nullable=True) # for password reset
+    
+    refresh_token: str = Field(default=None , nullable=True) 
+    
+    is_verified : bool = Field(default=False , nullable=False)
+    is_active : bool = Field(default=False , nullable=False) 
+    last_login_provider : Optional[AuthProvider] = Field(default=None , nullable=True)
+  
+
+    created_at: datetime = Field(default_factory=_now , nullable=False)
+    updated_at: datetime = Field(default_factory=_now , nullable=False)
 
     jobs: List[Job] = Relationship(back_populates="user")

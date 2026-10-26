@@ -2,20 +2,28 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from src.db.db import create_db_and_tables
 from src.routes.thumbnails import router as thumbnails_router
+from src.routes.users import router as users_router
 from fastapi.middleware.cors import CORSMiddleware
 from src.core.exceptions import ApplicationException
 from src.core.error_handler import application_exception_handler, generic_exception_handler
 
 from src.core.logger import setup_logging
 
-# Initialize colored logging setup
+#* Initialize colored logging setup
 setup_logging()
+
+
+#* Lifespan context manager for FastAPI application
+# before the FastAPI application starts, this function will run and executes its code unless and until it reaches the yield statement.
+# As the yield statement hit, the FastAPI application will start and run its code. When the FastAPI application is shutting down, 
+# the code after the yield statement will execute.
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     # Perform any startup tasks here
     await create_db_and_tables()
     yield
+    print("application stopped")
     # Perform any shutdown tasks here
 
 
@@ -35,7 +43,8 @@ app.add_exception_handler(Exception, generic_exception_handler)
 
 
 #* routes
-app.include_router(router=thumbnails_router , prefix="/api/v1")
+app.include_router(router=thumbnails_router , prefix="/api/v1") # this becomes /api/v1/thumbnails (prefix combines with the prefix of thumbnails_router)
+app.include_router(router=users_router , prefix="/api/v1") 
 
 
 #* middleware
@@ -44,7 +53,7 @@ app.add_middleware(
     allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=[]
+    allow_headers=['*']
 
 )
 
