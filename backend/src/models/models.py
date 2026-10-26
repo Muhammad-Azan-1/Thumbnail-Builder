@@ -64,7 +64,7 @@ class User(SQLModel , table=True):
     id: str = Field(default_factory=_uuid , primary_key=True , index=True)
     full_name: str = Field(default=None , nullable=False)
     email: str = Field(default=None , nullable=False , unique=True , index=True)
-    password: str = Field(default=None , nullable=False)
+    password: Optional[str] = Field(default=None , nullable=True)
     auth_provider: AuthProvider = Field(default=AuthProvider.LOCAL , nullable=False)
     google_id: str = Field(default=None , nullable=True)
     avatar_url: str = Field(default=None , nullable=True)

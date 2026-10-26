@@ -30,12 +30,12 @@ MAILTRAP_TOKEN=os.getenv("MAILTRAP_TOKEN" ,"")
 
 
 #* gmail email setup
-GMAIL_USERNAME=os.getenv("GMAIL_USERNAME" ,"")
-GMAIL_PASSWORD=os.getenv("GMAIL_PASSWORD" ,"")    
+GMAIL_USERNAME=os.getenv("EMAIL_USER" ,"")
+GMAIL_PASSWORD=os.getenv("EMAIL_PASS" ,"")    
 
 
 #* email provider setup
 EMAIL_PROVIDER=os.getenv("EMAIL_PROVIDER" ,"mailtrap")
 
 #* google clinet id
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID " , None)
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID" , None)

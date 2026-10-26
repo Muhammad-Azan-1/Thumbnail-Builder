@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+  <body>
+
+    <div
+      id="g_id_onload"
+      data-client_id="376061306156-dridtcmfnehl6h2ij7j800p2im4q2pc2.apps.googleusercontent.com"
+      data-callback="handleCredentialResponse"
+      data-auto_prompt="false">
+    </div>
+
+    <div class="g_id_signin" data-type="standard"></div>
+    
+    <textarea id="credential" rows="8" cols="80"
+      placeholder="Your Google ID token will appear here"></textarea>
+
+
+
+
+    <script>
+      function handleCredentialResponse(response) {
+        document.getElementById("credential").value = response.credential;
+      }
+    </script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </body>
+</html>

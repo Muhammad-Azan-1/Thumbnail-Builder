@@ -1,4 +1,4 @@
-from pydantic import BaseModel , EmailStr , model_validator
+from pydantic import BaseModel , ConfigDict, EmailStr , model_validator
 from datetime import datetime   
 
 
@@ -23,6 +23,18 @@ class TokenResponse(BaseModel):
 
 
 class UserPublic(BaseModel):                                                         
+        """Public response view of a User ORM object.
+
+        ORM values are attributes, not a dictionary. `from_attributes=True` lets
+        `model_validate(user)` read those attributes; only fields declared here
+        are included in the API response.
+
+        Without this setting, passing a User ORM instance to model_validate()
+        raised a Pydantic ValidationError: "Input should be a valid dictionary
+        or instance of UserPublic" (type=model_type).
+        """
+        model_config = ConfigDict(from_attributes=True)
+
         id: str                                                                          
         full_name: str                                                                   
         email: EmailStr                                                                  

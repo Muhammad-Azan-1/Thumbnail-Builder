@@ -92,7 +92,7 @@ async def resend_email_verification(request: ResendEmailVerificationRequest, ses
 
 #* or
 @router.post("/refresh-access-token" , response_model=ApiResponse[dict])
-async def refresh_access_token( response : Response , refresh_token : str | None = Cookie(default=None) , session : AsyncSession = Depends(get_async_session)): #* this parameter tells fast_api to look cooki named refresh_token in the incoming request
+async def refresh_access_token( response : Response , refresh_token : str | None = Cookie(default=None) , session : AsyncSession = Depends(get_async_session)): #* this parameter tells fast_api to look cookie named refresh_token in the incoming request
 
     if not refresh_token:
         raise ApplicationException(
@@ -126,6 +126,7 @@ async def refresh_access_token( response : Response , refresh_token : str | None
          
             
     result = await AuthService.refresh_acess_token(user , session)
+    print("Result" , result)
 
     response.set_cookie(
         key="access_token",
@@ -133,7 +134,7 @@ async def refresh_access_token( response : Response , refresh_token : str | None
         httponly=True,
         secure=False, 
         samesite="lax",
-        max_age=60*60*24
+        max_age=60* 60 * 24
     )
 
     response.set_cookie(                                                                                      

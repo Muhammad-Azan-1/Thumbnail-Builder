@@ -15,8 +15,9 @@ import hashlib
 
 from google.oauth2 import id_token
 from google.auth.transport import requests as g_requests
-from sqlalchemy.exc import IntegrityError
 import asyncio
+
+from ..db.db import _now
 
 
 from ..core.config import GOOGLE_CLIENT_ID
@@ -43,6 +44,18 @@ class AuthService():
               
             )
 
+        if (
+        len(user_data.password) < 5
+        or not any(char.isalpha() for char in user_data.password)
+        or not any(char.isdigit() for char in user_data.password)
+        ):
+            raise ApplicationException(
+                name="PASSWORD_IS_NOT_VALID",
+                message="password must be at least 5 character long. and must contain a digit and a alphabate ",
+                statusCode=400,
+            )
+
+
         # create OTP and and verification token for email verification
         raw_otp , hashed_otp = generate_verfication_otp()
         raw_token, hashed_token  = generate_verification_token()
@@ -54,7 +67,7 @@ class AuthService():
         password=hash_password(user_data.password),
         verification_otp=hashed_otp,
         verification_token=hashed_token,
-        verification_expiry=datetime.now(timezone.utc) + timedelta(minutes=5)  # OTP and token expiry set to 1 minutes from now
+        verification_expiry=_now() + timedelta(minutes=5)  # OTP and token expiry set to 5 minutes from now
         )
 
         session.add(user)
@@ -85,7 +98,7 @@ class AuthService():
             ApplicationException: If the OTP or token is invalid or expired. or if email is already verfied
         """
 
-        expires_after = datetime.now(timezone.utc)
+        expires_after = _now()
         if otp:
             hashed_otp = hashlib.sha256(otp.encode()).hexdigest()
             query = select(User).where(
@@ -149,7 +162,7 @@ class AuthService():
             )
 
 
-        if not verify_password(user_data.password , user.password):
+        if user.password is None or not verify_password(user_data.password , user.password):
             raise ApplicationException(
                 name="INVALED_EMAIL_OR_PASSWORD",
                 message="Invaled Email or Password",
@@ -198,7 +211,7 @@ class AuthService():
 
       user.verification_otp = hashed_otp
       user.verification_token = hashed_token
-      user.verification_expiry = datetime.now(timezone.utc) + timedelta(minutes=5)
+      user.verification_expiry = _now() + timedelta(minutes=5)
 
       await EmailVerificationService.send_email_verfication(
           otp=raw_otp,
@@ -246,7 +259,7 @@ class AuthService():
 
         raw_token, hashed_token  = generate_reset_password_token()
         user.reset_password_token = hashed_token 
-        user.reset_password_expiry = datetime.now(timezone.utc) + timedelta(minutes=5)
+        user.reset_password_expiry = _now() + timedelta(minutes=5)
 
         await EmailVerificationService.reset_password_email(raw_token , user.email , user.full_name)
 
@@ -263,8 +276,20 @@ class AuthService():
             message="Please provide token and password",
             statusCode=401
             )
+        
+        if (
+            len(new_password) < 5
+            or not any(char.isalpha() for char in new_password)
+            or not any(char.isdigit() for char in new_password)
+        ):
+            raise ApplicationException(
+                name="PASSWORD_IS_NOT_VALID",
+                message="password must be at least 5 character long. and must contain a digit and a alphabate ",
+                statusCode=400,
+            )
+
         hashed_reset_token = hashlib.sha256(token.encode()).hexdigest()  
-        expires_after = datetime.now(timezone.utc)
+        expires_after = _now()
 
         user = (await session.exec(select(User).where(
             User.reset_password_token == hashed_reset_token ,
@@ -312,9 +337,13 @@ class AuthService():
                 message="Google Email is not verfied",
                 statusCode=401,
             )
-
+        print("="*30)
+        print("INFO" , info)
+        print("="*30)
+        
         google_id = info.get("sub")
         email = info.get("email")
+
         if not isinstance(google_id, str) or not google_id.strip():
             raise ApplicationException(
                 name="INVALID_GOOGLE_TOKEN",
@@ -327,6 +356,7 @@ class AuthService():
                 message="Google credential is missing the email address",
                 statusCode=401,
             )
+        
         email = email.lower()
 
 
@@ -334,6 +364,9 @@ class AuthService():
         if not user:
             user = (await session.exec(select(User).where(User.email == email))).first()
 
+        print("="*30)
+        print("FOUND USER" , user)
+        print("="*30)
         
         if user:
             if user.auth_provider == "local":
@@ -388,3 +421,10 @@ class AuthService():
 
         
         
+
+
+
+# The HTTP 422 Unprocessable Content (formerly known as "Unprocessable Entity")
+# client error status code indicates that the server understands the request
+# and its syntax is perfectly correct, but it cannot process the contained 
+# instructions due to semantic or data validation errors.

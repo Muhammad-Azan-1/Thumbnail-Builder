@@ -4,14 +4,13 @@ from urllib.parse import urlencode
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType 
 from ..core.config import (EMAIL_PROVIDER, MAILTRAP_USERNAME, MAILTRAP_PASSWORD, MAILTRAP_HOST, MAILTRAP_PORT, FRONTEND_URL, GMAIL_USERNAME, GMAIL_PASSWORD)
 
-
 class EmailVerificationService:
 
     if EMAIL_PROVIDER == "mailtrap":
         conf = ConnectionConfig(
             MAIL_USERNAME=MAILTRAP_USERNAME,
             MAIL_PASSWORD=MAILTRAP_PASSWORD,
-            MAIL_FROM=MAILTRAP_USERNAME,
+            MAIL_FROM=GMAIL_USERNAME,
             MAIL_PORT=int(MAILTRAP_PORT),
             MAIL_SERVER=MAILTRAP_HOST,
             MAIL_STARTTLS=True,
