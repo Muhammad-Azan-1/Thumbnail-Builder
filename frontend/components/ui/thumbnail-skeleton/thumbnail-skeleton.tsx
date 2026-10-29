@@ -1,3 +1,4 @@
+import "./thumbnail-skeleton.css";
 import { Loader2 } from "lucide-react";
 import {useFauxProgress} from '@/hooks/use-faux-progress'
 export function ThumbnailSkeleton({

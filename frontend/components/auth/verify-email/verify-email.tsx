@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, FormEvent, KeyboardEvent, ClipboardEvent } from "react";
 import Link from "next/link";
 import { ArrowRight, LoaderCircle, ArrowLeft, CheckCircle2, Mail } from "lucide-react";
+import "./verify-email.css";
 
 const CODE_LENGTH = 6;
 

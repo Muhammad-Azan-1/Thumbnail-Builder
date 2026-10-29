@@ -1,4 +1,5 @@
 "use client";
+import "./thumbnail-builder.css";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ChangeEvent,

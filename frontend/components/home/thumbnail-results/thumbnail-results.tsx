@@ -1,6 +1,7 @@
 import type { StyleId, ThumbnailResultsProps } from "@/types/props";
 import { ArrowUpRight, RotateCcw, Trash2, AlertCircle } from "lucide-react";
-import { ThumbnailSkeleton } from "../ui/thumbnail-skeleton";
+import "./thumbnail-results.css";
+import { ThumbnailSkeleton } from "../../ui/thumbnail-skeleton/thumbnail-skeleton";
 import {  ThumbnailResponse} from "@/types/thumbnails";
 import { useJobThumbnails } from "@/hooks/use-thumbnail";
 

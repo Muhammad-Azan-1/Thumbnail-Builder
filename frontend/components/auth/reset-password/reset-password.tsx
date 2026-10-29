@@ -3,7 +3,7 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { ArrowRight, LoaderCircle, Check, X, CheckCircle2 } from "lucide-react";
-import PasswordInput from "../ui/password-input";
+import PasswordInput from "../password-input/password-input";
 
 const PASSWORD_REQUIREMENTS = [
   { label: "At least 8 characters", test: (p: string) => p.length >= 8 },

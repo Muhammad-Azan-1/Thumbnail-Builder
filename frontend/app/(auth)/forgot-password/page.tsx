@@ -1,4 +1,4 @@
-import ForgotPasswordForm from "@/components/auth/forgot-password";
+import ForgotPasswordForm from "@/components/auth/forgot-password/forgot-password";
 
 export const metadata = {
   title: "Forgot Password — Thumbnail Builder",

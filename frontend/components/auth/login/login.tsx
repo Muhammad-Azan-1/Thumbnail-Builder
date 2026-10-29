@@ -3,8 +3,9 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
 import { ArrowRight, LoaderCircle } from "lucide-react";
-import GoogleAuthButton from "./google-auth";
-import PasswordInput from "../ui/password-input";
+import GoogleAuthButton from "../google-auth/google-auth";
+import PasswordInput from "../password-input/password-input";
+import "./login.css";
 import { LoginErrors, LoginFormData } from "@/types/auth";
 
 

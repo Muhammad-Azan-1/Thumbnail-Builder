@@ -1,0 +1,77 @@
+/* Verify Email — component-specific */
+
+.auth-otp-wrap {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.auth-otp-input {
+  width: 48px;
+  height: 56px;
+  padding: 0;
+  border: 1px solid #3b3b3d;
+  border-radius: 9px;
+  outline: none;
+  color: #f7f3ec;
+  background: #101011;
+  font-size: 22px;
+  font-weight: 800;
+  font-family: var(--font-geist-mono), monospace;
+  text-align: center;
+  caret-color: var(--orange);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.auth-otp-input:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(243, 107, 69, 0.1);
+}
+
+.auth-otp-input.filled {
+  border-color: #555453;
+}
+
+.auth-resend-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 12px;
+  font-family: var(--font-geist-mono), monospace;
+  color: #686563;
+}
+
+.auth-resend-button {
+  color: var(--orange);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-geist-mono), monospace;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.auth-resend-button:hover:not(:disabled) {
+  color: #ff8561;
+  text-decoration: underline;
+}
+
+.auth-resend-button:disabled {
+  color: #555453;
+  cursor: not-allowed;
+}
+
+@media (max-width: 700px) {
+  .auth-otp-input {
+    width: 42px;
+    height: 48px;
+    font-size: 18px;
+  }
+  .auth-otp-wrap {
+    gap: 8px;
+  }
+}

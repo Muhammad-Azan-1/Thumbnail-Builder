@@ -1,8 +1,9 @@
 "use client";
 
+import "./home-client.css";
 import { useState } from "react";
-import ThumbnailBuilder from "./thumbnail-builder";
-import ThumbnailResults from "./thumbnail-results";
+import ThumbnailBuilder from "../thumbnail-builder/thumbnail-builder";
+import ThumbnailResults from "../thumbnail-results/thumbnail-results";
 import type { StyleId } from "@/types/props";
 import  {useRetryFailedThumbnail , useRetryAllFailedThumbnails , useDeleteThumbnail, useDeleteAllThumbnails} from '@/hooks/use-thumbnail'
 import { useJobThumbnails } from "@/hooks/use-thumbnail";

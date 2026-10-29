@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { type ChangeEvent} from 'react'
+import "./password-input.css";
 import {PasswordInputProps} from '@/types/auth'
 
 

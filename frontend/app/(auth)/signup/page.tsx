@@ -1,4 +1,4 @@
-import SignupForm from "@/components/auth/signup";
+import SignupForm from "@/components/auth/signup/signup";
 
 export const metadata = {
   title: "Create Account — Thumbnail Builder",

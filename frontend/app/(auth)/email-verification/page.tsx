@@ -1,4 +1,4 @@
-import VerifyEmailForm from "@/components/auth/verify-email";
+import VerifyEmailForm from "@/components/auth/verify-email/verify-email";
 
 export const metadata = {
   title: "Verify Email — Thumbnail Builder",

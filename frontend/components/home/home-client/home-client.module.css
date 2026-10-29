@@ -1,0 +1,35 @@
+.studio-header {
+  position: relative;
+  z-index: 1;
+  max-width: 1120px;
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 34px;
+}
+.header-status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #aaa6a0;
+  font-size: 12px;
+}
+.header-status span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #71bd7b;
+  box-shadow: 0 0 12px #71bd7b;
+}
+
+@media (max-width: 700px) {
+  .studio-header {
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+  .header-status {
+    display: none;
+  }
+}

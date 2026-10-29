@@ -1,5 +1,7 @@
 "use client";
 
+import "./google-auth.css";
+
 interface GoogleAuthButtonProps {
   onClick?: () => void;
   disabled?: boolean;
