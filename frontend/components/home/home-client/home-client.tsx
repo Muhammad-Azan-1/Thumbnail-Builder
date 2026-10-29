@@ -1,6 +1,6 @@
 "use client";
 
-import "./home-client.css";
+import styles from "./home-client.module.css";
 import { useState } from "react";
 import ThumbnailBuilder from "../thumbnail-builder/thumbnail-builder";
 import ThumbnailResults from "../thumbnail-results/thumbnail-results";
@@ -203,7 +203,7 @@ async function handleRetryAll() : Promise<void> {
   return (
     <main className="studio-shell">
       <div className="grain" aria-hidden="true" />
-      <header className="studio-header">
+      <header className={styles.studioHeader}>
         <div className="brand-mark" aria-hidden="true">
           TB
         </div>
@@ -212,7 +212,7 @@ async function handleRetryAll() : Promise<void> {
           <h1>Thumbnail Builder</h1>
           <p className="font-mono subtitle">Generate YouTube thumbnails with AI</p>
         </div>
-        <div className="header-status font-mono">
+        <div className={`${styles.headerStatus} font-mono`}>
           <span /> Ready to create
         </div>
       </header>

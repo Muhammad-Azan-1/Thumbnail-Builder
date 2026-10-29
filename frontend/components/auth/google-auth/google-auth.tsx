@@ -1,6 +1,6 @@
 "use client";
 
-import "./google-auth.css";
+import styles from "./google-auth.module.css";
 
 interface GoogleAuthButtonProps {
   onClick?: () => void;
@@ -16,7 +16,7 @@ export default function GoogleAuthButton({
   return (
     <button
       type="button"
-      className="google-auth-button"
+      className={styles.googleAuthButton}
       onClick={onClick}
       disabled={disabled}
       aria-label={label}

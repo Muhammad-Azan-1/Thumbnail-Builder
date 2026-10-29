@@ -1,4 +1,4 @@
-.studio-header {
+.studioHeader {
   position: relative;
   z-index: 1;
   max-width: 1120px;
@@ -8,7 +8,7 @@
   gap: 16px;
   margin-bottom: 34px;
 }
-.header-status {
+.headerStatus {
   margin-left: auto;
   display: flex;
   align-items: center;
@@ -16,7 +16,7 @@
   color: #aaa6a0;
   font-size: 12px;
 }
-.header-status span {
+.headerStatus span {
   width: 7px;
   height: 7px;
   border-radius: 50%;
@@ -25,11 +25,11 @@
 }
 
 @media (max-width: 700px) {
-  .studio-header {
+  .studioHeader {
     align-items: flex-start;
     margin-bottom: 24px;
   }
-  .header-status {
+  .headerStatus {
     display: none;
   }
 }

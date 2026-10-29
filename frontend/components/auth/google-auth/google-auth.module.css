@@ -1,6 +1,6 @@
 /* Google Auth Button — component-specific */
 
-.google-auth-button {
+.googleAuthButton {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -19,19 +19,19 @@
   transition: border-color 0.2s, background 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
-.google-auth-button:hover:not(:disabled) {
+.googleAuthButton:hover:not(:disabled) {
   border-color: #555453;
   background: #1e1e1f;
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
 }
 
-.google-auth-button:disabled {
+.googleAuthButton:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
 
-.google-auth-button svg {
+.googleAuthButton svg {
   width: 20px;
   height: 20px;
   flex-shrink: 0;

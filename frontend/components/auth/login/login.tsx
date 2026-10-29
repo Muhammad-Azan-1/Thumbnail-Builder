@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowRight, LoaderCircle } from "lucide-react";
 import GoogleAuthButton from "../google-auth/google-auth";
 import PasswordInput from "../password-input/password-input";
-import "./login.css";
+import styles from "./login.module.css";
 import { LoginErrors, LoginFormData } from "@/types/auth";
 
 
@@ -119,12 +119,12 @@ export default function LoginForm() {
           )}
         </div>
 
-        <div className="auth-row">
-          <label className="auth-checkbox-label">
+        <div className={styles.authRow}>
+          <label className={styles.authCheckboxLabel}>
             <input
               type="checkbox"
               name="rememberMe"
-              className="auth-checkbox"
+              className={styles.authCheckbox}
               checked={formData.rememberMe}
               onChange={handleChange}
               disabled={isSubmitting}

@@ -1,5 +1,9 @@
-@keyframes ig-morph {
-   0% {
+.morphingMask {
+  animation: igMorph 18s infinite ease-in-out;
+}
+
+@keyframes igMorph {
+  0% {
     mask-size: 48% 42%, 42% 38%;
     mask-position: 0% 0%, 100% 100%;
   }
@@ -38,14 +42,4 @@
     mask-size: 48% 42%, 42% 38%;
     mask-position: 0% 0%, 100% 100%;
   }
-}
-
-@keyframes ig-breathe {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
-}
-
-@keyframes ig-shine {
-  0%, 18% { background-position: 100% 0; }
-  82%, 100% { background-position: 0% 0; }
 }

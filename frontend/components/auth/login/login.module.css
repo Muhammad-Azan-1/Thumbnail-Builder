@@ -1,12 +1,12 @@
 /* Login — component-specific */
 
-.auth-row {
+.authRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.auth-checkbox-label {
+.authCheckboxLabel {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -17,7 +17,7 @@
   user-select: none;
 }
 
-.auth-checkbox {
+.authCheckbox {
   width: 16px;
   height: 16px;
   border: 1px solid #3b3b3d;

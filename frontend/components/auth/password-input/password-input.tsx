@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { type ChangeEvent} from 'react'
-import "./password-input.css";
-import {PasswordInputProps} from '@/types/auth'
+import styles from "./password-input.module.css";
+import type { PasswordInputProps } from "@/types/auth";
 
 
 
@@ -22,7 +21,7 @@ export default function PasswordInput({
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <div className="auth-input-wrap">
+    <div className={styles.authInputWrap}>
       <input
         id={id}
         type={showPassword ? "text" : "password"}
@@ -36,7 +35,7 @@ export default function PasswordInput({
       />
       <button
         type="button"
-        className="auth-password-toggle"
+        className={styles.authPasswordToggle}
         onClick={() => setShowPassword((s) => !s)}
         aria-label={showPassword ? "Hide password" : "Show password"}
         tabIndex={-1}

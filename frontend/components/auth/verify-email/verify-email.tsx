@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, FormEvent, KeyboardEvent, ClipboardEvent } from "react";
 import Link from "next/link";
 import { ArrowRight, LoaderCircle, ArrowLeft, CheckCircle2, Mail } from "lucide-react";
-import "./verify-email.css";
+import styles from "./verify-email.module.css";
 
 const CODE_LENGTH = 6;
 
@@ -150,7 +150,7 @@ export default function VerifyEmailForm() {
           <label className="field-label font-mono" id="otp-label">
             Verification Code <b>*</b>
           </label>
-          <div className="auth-otp-wrap" aria-labelledby="otp-label">
+          <div className={styles.authOtpWrap} aria-labelledby="otp-label">
             {digits.map((digit, i) => (
               <input
                 key={i}
@@ -158,7 +158,7 @@ export default function VerifyEmailForm() {
                 type="text"
                 inputMode="numeric"
                 maxLength={1}
-                className={`auth-otp-input font-mono ${digit ? "filled" : ""} ${showValidation && !digit ? "input-invalid" : ""}`}
+                className={`${styles.authOtpInput} font-mono ${digit ? styles.filled : ""} ${showValidation && !digit ? "input-invalid" : ""}`}
                 value={digit}
                 onChange={(e) => handleDigitChange(i, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(i, e)}
@@ -192,11 +192,11 @@ export default function VerifyEmailForm() {
         </button>
       </form>
 
-      <div className="auth-resend-wrap" style={{ marginTop: 20 }}>
+      <div className={styles.authResendWrap}>
         <span>Didn&apos;t receive a code?</span>
         <button
           type="button"
-          className="auth-resend-button"
+          className={styles.authResendButton}
           onClick={handleResend}
           disabled={resendCountdown > 0 || isSubmitting}
         >
