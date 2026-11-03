@@ -1,6 +1,60 @@
 
+import {FETCH_API_METHOD} from "@/lib/client";
+import { ForgotPasswordFormData, LoginFormData, SignupFormData } from "@/types/auth";
+
+const AUTH_API = "/api/v1/auth";
 
 
+export async function SignupUser(data: SignupFormData) {
+  return await FETCH_API_METHOD(`signup`, AUTH_API  , {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function LoginUser(data:LoginFormData) {
+  return await FETCH_API_METHOD(`login`, AUTH_API  , {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+
+export async function EmailVerification(token: string) {
+  return await FETCH_API_METHOD(`verify-email/${token}`, AUTH_API  , {
+    method: "GET",
+  });
+}
+
+
+export async function ResendVerificationEmail(email: string) {
+  return await FETCH_API_METHOD(`resend-verification-email`, AUTH_API  , {
+    method: "POST",
+    body: JSON.stringify({email}),
+  });
+}
+
+
+export async function forgotPassword( data : ForgotPasswordFormData) {
+  return await FETCH_API_METHOD('forgot-password-verfication', AUTH_API , {
+    method : "POST",
+    body : JSON.stringify(data)
+  })
+}
+
+export async function resetPassword(token:string , newPassword:string){
+  return await FETCH_API_METHOD('reset-password', AUTH_API , {
+    method : "POST",
+    body : JSON.stringify({token , newPassword})
+  })
+}
+
+
+export async function logoutUser(){
+  return await FETCH_API_METHOD('logout', AUTH_API , {
+    method : "POST",
+  })
+}
 
 //* helper function for password strength check
 

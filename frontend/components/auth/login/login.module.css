@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-family: var(--font-geist-mono), monospace;
   color: #aaa6a0;
   cursor: pointer;
@@ -18,8 +18,8 @@
 }
 
 .authCheckbox {
-  width: 16px;
-  height: 16px;
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
   border: 1px solid #3b3b3d;
   border-radius: 4px;
   background: #101011;

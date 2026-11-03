@@ -23,7 +23,7 @@ export default function HomeClient() {
 
   // Ten stack query hooks
   const {data , isError, error} = useJobThumbnails(jobId ?? "" , isGenerating)
-  console.log("data" , data , "IsError" , isError , "Error" ,error)
+  // console.log("data" , data , "IsError" , isError , "Error" ,error)
 
   const {mutateAsync : retryFailedThumbnailsAsync} = useRetryFailedThumbnail()
   const {mutateAsync : retryAllFailedThumbnailsAsync} = useRetryAllFailedThumbnails()

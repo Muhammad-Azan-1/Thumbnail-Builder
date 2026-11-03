@@ -3,21 +3,22 @@ import { CreateJob, CreateJobResponse, RetryThumbnailResponse  , JobResponse} fr
 import {SSE_EVENTS} from '../types/SSE_Events'
 import {JobEventHandlers } from '../types/thumbnails'
 
-import { BASE_API } from "./client";
+const THUMBNAILS_API = "/api/v1/thumbnails";
+
 
 // createjob -> call backend to create all thumbnails (which lies in that job)
 export async function createJob(data:CreateJob){
-    return await FETCH_API_METHOD<CreateJobResponse>("/job" ,{
+    return await FETCH_API_METHOD<CreateJobResponse>("/job" , THUMBNAILS_API, {
     method : 'POST',
     body : JSON.stringify(data)
-    })
+    } )
 }
 
 
 
 // get all thumbnails for a job id
 export async function get_all_thumbnails(job_id : string){
-    return await FETCH_API_METHOD<JobResponse>(`/job/${job_id}` , {
+    return await FETCH_API_METHOD<JobResponse>(`/job/${job_id}` ,  THUMBNAILS_API , {
         method : "GET",
     })
 }
@@ -25,14 +26,14 @@ export async function get_all_thumbnails(job_id : string){
 
 //retry single failed thumbnails
 export async function retryFailedThumbnail(thumbnailId: string) {
-    return await FETCH_API_METHOD<RetryThumbnailResponse>(`/retry/thumbnail/${thumbnailId}`, {
+    return await FETCH_API_METHOD<RetryThumbnailResponse>(`/retry/thumbnail/${thumbnailId}`, THUMBNAILS_API , {
         method: 'POST',
     });
 }
 
 //retry All failed thumbnails
 export async function retryAllFailedThumbnails(jobId: string) {
-    return await FETCH_API_METHOD(`/retry/job/${jobId}`, {
+    return await FETCH_API_METHOD(`/retry/job/${jobId}`, THUMBNAILS_API , {
         method: 'POST',
     });
 }
@@ -41,7 +42,7 @@ export async function retryAllFailedThumbnails(jobId: string) {
 
 // delete batch thumbnails
 export async function batch_delete_thumbnails(thumbnail_ids: string[]){
-    return await FETCH_API_METHOD(`/delete-batch` , {
+    return await FETCH_API_METHOD(`/delete-batch` , THUMBNAILS_API , {
         body : JSON.stringify({'thumbnail_ids' : thumbnail_ids}),
         method : "DELETE"
     })
@@ -50,7 +51,7 @@ export async function batch_delete_thumbnails(thumbnail_ids: string[]){
 
 // delete single thumbnails
 export async function delete_thumbnail(thumbnail_id : string){
-    return await FETCH_API_METHOD(`/delete/${thumbnail_id}` , {
+    return await FETCH_API_METHOD(`/delete/${thumbnail_id}` , THUMBNAILS_API , {
         method : "DELETE"
     })
 
@@ -61,7 +62,7 @@ export async function delete_thumbnail(thumbnail_id : string){
 export function subscribeToJobStatus(job_id: string, { onThumbnailReady, onThumbnailFailed, onJobComplete, onFailed , onError }: JobEventHandlers
 ) {
 
-    const es = new EventSource(`${BASE_API}/jobs/${job_id}/stream`)
+    const es = new EventSource(`${THUMBNAILS_API}/jobs/${job_id}/stream`)
 
 
     es.addEventListener(SSE_EVENTS.THUMBNAIL_READY , (event: MessageEvent<string>)=>{

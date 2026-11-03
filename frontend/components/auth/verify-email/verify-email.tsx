@@ -2,12 +2,16 @@
 
 import { useState, useRef, useEffect, FormEvent, KeyboardEvent, ClipboardEvent } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, LoaderCircle, ArrowLeft, CheckCircle2, Mail } from "lucide-react";
 import styles from "./verify-email.module.css";
+import { getRedirectHref } from "@/lib/auth-redirect";
 
 const CODE_LENGTH = 6;
 
 export default function VerifyEmailForm() {
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect");
   const [digits, setDigits] = useState<string[]>(Array(CODE_LENGTH).fill(""));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
@@ -118,7 +122,7 @@ export default function VerifyEmailForm() {
           </div>
           <h2>Email Verified!</h2>
           <p>Your email has been verified successfully. You can now access all features.</p>
-          <Link href="/login" className="auth-submit-button" style={{ marginTop: 8, maxWidth: 260, textDecoration: "none" }}>
+          <Link href={getRedirectHref("/login", redirect)} className="auth-submit-button" style={{ marginTop: 8, maxWidth: 260, textDecoration: "none" }}>
             <span className="font-mono">Continue to Sign In</span>
             <ArrowRight className="button-arrow" aria-hidden="true" />
           </Link>
@@ -129,7 +133,7 @@ export default function VerifyEmailForm() {
 
   return (
     <div className="auth-card">
-      <Link href="/login" className="auth-back-link">
+      <Link href={getRedirectHref("/login", redirect)} className="auth-back-link">
         <ArrowLeft aria-hidden="true" />
         Back to sign in
       </Link>

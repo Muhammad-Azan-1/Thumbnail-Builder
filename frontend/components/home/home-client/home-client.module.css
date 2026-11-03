@@ -1,7 +1,7 @@
 .studioHeader {
   position: relative;
   z-index: 1;
-  max-width: 1120px;
+  max-width: var(--content-max-width);
   margin-inline: auto;
   display: flex;
   align-items: center;
@@ -14,7 +14,7 @@
   align-items: center;
   gap: 8px;
   color: #aaa6a0;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .headerStatus span {
   width: 7px;

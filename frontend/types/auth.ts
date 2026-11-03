@@ -5,6 +5,7 @@ export interface SignupFormData {
   email: string;
   password: string;
   confirmPassword: string;
+  redirect?: string;
 }
 
 
@@ -36,4 +37,10 @@ export interface LoginFormData {
 export interface LoginErrors {
   emailError?: string;
   passwordError?: string;
+}
+
+
+export interface ForgotPasswordFormData {
+  email: string;
+  redirect?: string;
 }

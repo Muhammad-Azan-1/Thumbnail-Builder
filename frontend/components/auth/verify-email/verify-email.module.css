@@ -3,19 +3,19 @@
 .authOtpWrap {
   display: flex;
   justify-content: center;
-  gap: 10px;
+  gap: 5px;
 }
 
 .authOtpInput {
-  width: 48px;
-  height: 56px;
+  width: var(--otp-box-width);
+  height: var(--otp-box-height);
   padding: 0;
   border: 1px solid #3b3b3d;
   border-radius: 9px;
   outline: none;
   color: #f7f3ec;
   background: #101011;
-  font-size: 22px;
+  font-size: var(--text-xl);
   font-weight: 800;
   font-family: var(--font-geist-mono), monospace;
   text-align: center;
@@ -38,14 +38,14 @@
   justify-content: center;
   gap: 6px;
   margin-top: 20px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-family: var(--font-geist-mono), monospace;
   color: #686563;
 }
 
 .authResendButton {
   color: var(--orange);
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-weight: 700;
   font-family: var(--font-geist-mono), monospace;
   background: none;
@@ -67,11 +67,13 @@
 
 @media (max-width: 700px) {
   .authOtpInput {
-    width: 42px;
-    height: 48px;
-    font-size: 18px;
+    width: var(--otp-box-width);
+    height: var(--otp-box-height);
   }
+}
+
+@media (min-width: 640px) {
   .authOtpWrap {
-    gap: 8px;
+    gap: 10px;
   }
 }

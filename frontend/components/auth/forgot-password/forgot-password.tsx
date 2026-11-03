@@ -2,9 +2,14 @@
 
 import { useState, FormEvent } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, LoaderCircle, ArrowLeft, Mail, CheckCircle2 } from "lucide-react";
+import { getRedirectHref } from "@/lib/auth-redirect";
 
 export default function ForgotPasswordForm() {
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect");
+  
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
@@ -52,7 +57,7 @@ export default function ForgotPasswordForm() {
             <Mail aria-hidden="true" />
             <span>The link will expire in 15 minutes. Check your spam folder if you don&apos;t see it.</span>
           </div>
-          <Link href="/login" className="auth-submit-button" style={{ marginTop: 8, maxWidth: 260, textDecoration: "none" }}>
+          <Link href={getRedirectHref("/login", redirect)} className="auth-submit-button" style={{ marginTop: 8, maxWidth: 260, textDecoration: "none" }}>
             <span className="font-mono">Back to Sign In</span>
             <ArrowRight className="button-arrow" aria-hidden="true" />
           </Link>
@@ -63,7 +68,7 @@ export default function ForgotPasswordForm() {
 
   return (
     <div className="auth-card">
-      <Link href="/login" className="auth-back-link">
+      <Link href={getRedirectHref("/login", redirect)} className="auth-back-link">
         <ArrowLeft aria-hidden="true" />
         Back to sign in
       </Link>
@@ -112,7 +117,7 @@ export default function ForgotPasswordForm() {
 
       <p className="auth-footer">
         Remember your password?{" "}
-        <Link href="/login" className="auth-link">
+        <Link href={getRedirectHref("/login", redirect)} className="auth-link">
           Sign in
         </Link>
       </p>

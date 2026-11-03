@@ -1,5 +1,6 @@
 from html import escape
 from urllib.parse import urlencode
+from typing import Optional
 
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType 
 from ..core.config import (EMAIL_PROVIDER, MAILTRAP_USERNAME, MAILTRAP_PASSWORD, MAILTRAP_HOST, MAILTRAP_PORT, FRONTEND_URL, GMAIL_USERNAME, GMAIL_PASSWORD)
@@ -45,8 +46,10 @@ class EmailVerificationService:
         return digits
 
     @staticmethod
-    async def send_email_verfication(otp: str, verification_token: str, recipient_email: str, recipient_name: str):
-        MAGIC_LINK = f"{FRONTEND_URL}/verify-email?{urlencode({'token': verification_token})}"
+    async def send_email_verfication(otp: str, verification_token: str, recipient_email: str, recipient_name: str , redirect : Optional[str] = None):
+        MAGIC_LINK = f"{FRONTEND_URL}/email-verification?{urlencode({'token': verification_token})}"
+        if redirect:
+            MAGIC_LINK += f"&redirect={urlencode(redirect)}"
         safe_name = escape(recipient_name)
         safe_magic_link = escape(MAGIC_LINK, quote=True)
         otp_digits = __class__._build_otp_digits(otp)
@@ -136,13 +139,14 @@ class EmailVerificationService:
         fm = FastMail(__class__.conf)
         return await fm.send_message(message)
         
-
-
     @staticmethod
-    async def reset_password_email(reset_token: str, recipient_email: str, recipient_name: str):
+    async def reset_password_email(reset_token: str, recipient_email: str, recipient_name: str, redirect : Optional[str] = None):
         reset_link = f"{FRONTEND_URL}/reset-password?{urlencode({'token': reset_token})}"
         safe_name = escape(recipient_name)
         safe_reset_link = escape(reset_link, quote=True)
+
+        if redirect:
+            safe_reset_link += f"&redirect={urlencode(redirect)}"
 
         message = MessageSchema(
           subject="Reset Your Thumbnail Builder Password",

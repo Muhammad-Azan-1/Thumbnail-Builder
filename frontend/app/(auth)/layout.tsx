@@ -1,4 +1,5 @@
 import "./auth.css";
+import { Suspense } from "react";
 
 export default function AuthLayout({
   children,
@@ -14,7 +15,7 @@ export default function AuthLayout({
             TB
           </div>
         </div>
-        {children}
+        <Suspense fallback={null}>{children}</Suspense>
       </div>
     </main>
   );

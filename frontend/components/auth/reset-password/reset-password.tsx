@@ -2,8 +2,10 @@
 
 import { useState, FormEvent } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, LoaderCircle, Check, X, CheckCircle2 } from "lucide-react";
 import PasswordInput from "../password-input/password-input";
+import { getRedirectHref } from "@/lib/auth-redirect";
 
 const PASSWORD_REQUIREMENTS = [
   { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
@@ -22,6 +24,8 @@ function getStrength(metCount: number) {
 }
 
 export default function ResetPasswordForm() {
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,7 +82,7 @@ export default function ResetPasswordForm() {
           </div>
           <h2>Password Reset!</h2>
           <p>Your password has been updated successfully. You can now sign in with your new password.</p>
-          <Link href="/login" className="auth-submit-button" style={{ marginTop: 8, maxWidth: 260, textDecoration: "none" }}>
+          <Link href={getRedirectHref("/login", redirect)} className="auth-submit-button" style={{ marginTop: 8, maxWidth: 260, textDecoration: "none" }}>
             <span className="font-mono">Sign In</span>
             <ArrowRight className="button-arrow" aria-hidden="true" />
           </Link>
@@ -102,8 +106,9 @@ export default function ResetPasswordForm() {
           </label>
           <PasswordInput
             id="reset-password"
+            name="password"
             value={password}
-            onChange={setPassword}
+            onChange={(e) => setPassword(e.currentTarget.value)}
             placeholder="Create a strong password"
             disabled={isSubmitting}
             invalid={showValidation && !!passwordError}
@@ -150,8 +155,9 @@ export default function ResetPasswordForm() {
           </label>
           <PasswordInput
             id="reset-confirm"
+            name="confirmPassword"
             value={confirmPassword}
-            onChange={setConfirmPassword}
+            onChange={(e) => setConfirmPassword(e.currentTarget.value)}
             placeholder="Re-enter your new password"
             disabled={isSubmitting}
             invalid={showValidation && !!confirmError}

@@ -7,12 +7,18 @@ import GoogleAuthButton from "../google-auth/google-auth";
 import PasswordInput from "../password-input/password-input";
 import {SignupFormData , SignupErrors} from '@/types/auth'
 import {PASSWORD_REQUIREMENTS , getStrength} from '@/lib/auth'
-
+import { useSignupUser } from "@/hooks/use-auth";
+import { useSearchParams } from "next/navigation";
+import { getRedirectHref } from "@/lib/auth-redirect";
 
 export default function SignupForm() {
 
+  const {mutateAsync : signupUser , isPending: isSubmitting, isError, error} = useSignupUser()
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get('redirect')
+
+
   const [showValidation, setShowValidation] = useState(false);
 
 
@@ -41,7 +47,7 @@ export default function SignupForm() {
   // Live password analysis (always computed, not gated by showValidation)
   const reqResults = PASSWORD_REQUIREMENTS.map((r) => ({
     ...r,
-    met: r.test(formData.password),
+    met : r.test(formData.password),
   }));
 
   const metCount = reqResults.filter((r) => r.met).length;
@@ -90,20 +96,27 @@ const isFormValid = Object.keys(errors).length === 0;
     if (!isFormValid) return;
 
 
-    setIsSubmitting(true);
+    // setIsSubmitting(true);
     try {
       // TODO: Replace with actual API call
       console.log("Signup submitted:", {
         fullName: formData.fullName,
         email: formData.email,
         password: formData.password,
+        redirect: redirect,
       });
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      await signupUser({
+        fullName: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        redirect : redirect ? redirect : undefined,
+      })
+
     } catch (err) {
       console.error("Signup failed:", err);
-    } finally {
-      setIsSubmitting(false);
-    }
+    } 
   }
 
   function handleGoogleAuth() {
@@ -236,6 +249,11 @@ const isFormValid = Object.keys(errors).length === 0;
         </div>
 
 
+        {isError && (
+        <p className="auth-field-error" role="alert">
+            {error instanceof Error ? error.message : "Signup failed. Please try again."}
+         </p>
+          )}
 
 
         <button
@@ -269,7 +287,7 @@ const isFormValid = Object.keys(errors).length === 0;
 
       <p className="auth-footer">
         Already have an account?{" "}
-        <Link href="/login" className="auth-link">
+        <Link href={getRedirectHref("/login", redirect)} className="auth-link">
           Sign in
         </Link>
       </p>

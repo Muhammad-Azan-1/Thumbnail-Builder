@@ -2,20 +2,26 @@
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, LoaderCircle } from "lucide-react";
 import GoogleAuthButton from "../google-auth/google-auth";
 import PasswordInput from "../password-input/password-input";
 import styles from "./login.module.css";
 import { LoginErrors, LoginFormData } from "@/types/auth";
-
+import { useLoginUser } from "@/hooks/use-auth";
+import { getRedirectHref, getSafeRedirectPath } from "@/lib/auth-redirect";
 
 export default function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect");
+  const { mutateAsync: loginUser, isPending: isSubmitting, isError, error } = useLoginUser();
+
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
     password: "",
     rememberMe: false,
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
 
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
@@ -54,17 +60,16 @@ export default function LoginForm() {
     setShowValidation(true);
     if (!isFormValid) return;
 
-    setIsSubmitting(true);
     try {
-      // TODO: Replace with actual API call
-      console.log("Login submitted:", formData);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await loginUser(formData);
+      router.replace(getSafeRedirectPath(redirect) ?? "/");
     } catch (err) {
       console.error("Login failed:", err);
-    } finally {
-      setIsSubmitting(false);
     }
   }
+  //* router.replace(...) navigates there without a full page reload and 
+  //* replaces the login page in browser history. So pressing Back won’t 
+  //* take the user straight back to the login page.
 
   function handleGoogleAuth() {
     // TODO: Implement Google OAuth flow
@@ -131,7 +136,7 @@ export default function LoginForm() {
             />
             Remember me
           </label>
-          <Link href="/forgot-password" className="auth-link">
+          <Link href={getRedirectHref("/forgot-password", redirect)} className="auth-link">
             Forgot password?
           </Link>
         </div>
@@ -150,6 +155,13 @@ export default function LoginForm() {
             <ArrowRight className="button-arrow" aria-hidden="true" />
           )}
         </button>
+
+        {isError && (
+          <p className="auth-field-error" role="alert">
+            {error instanceof Error ? error.message : "Login failed. Please try again."}
+          </p>
+        )}
+
       </form>
 
         <div className="auth-divider">
@@ -163,7 +175,7 @@ export default function LoginForm() {
 
       <p className="auth-footer">
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className="auth-link">
+        <Link href={getRedirectHref("/signup", redirect)} className="auth-link">
           Create one
         </Link>
       </p>

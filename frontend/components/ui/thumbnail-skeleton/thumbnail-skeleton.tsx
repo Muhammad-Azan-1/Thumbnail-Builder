@@ -1,6 +1,6 @@
 import styles from "./thumbnail-skeleton.module.css";
 import { Loader2 } from "lucide-react";
-import {useFauxProgress} from '@/hooks/use-faux-progress'
+import {useFauxProgress} from '@/components/ui/use-faux-progress'
 export function ThumbnailSkeleton({
   prompt = "Generating your design...",
   isloading,
