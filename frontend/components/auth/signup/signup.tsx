@@ -98,7 +98,7 @@ const isFormValid = Object.keys(errors).length === 0;
 
     // setIsSubmitting(true);
     try {
-      // TODO: Replace with actual API call
+      
       console.log("Signup submitted:", {
         fullName: formData.fullName,
         email: formData.email,
@@ -107,12 +107,9 @@ const isFormValid = Object.keys(errors).length === 0;
       });
 
       await signupUser({
-        fullName: formData.fullName,
-        email: formData.email,
-        password: formData.password,
-        confirmPassword: formData.confirmPassword,
-        redirect : redirect ? redirect : undefined,
-      })
+        ...formData,
+        redirect: redirect ? redirect : undefined,
+      });
 
     } catch (err) {
       console.error("Signup failed:", err);

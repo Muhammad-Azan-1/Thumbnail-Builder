@@ -1,6 +1,7 @@
 'use client'
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-
+import { Provider } from "react-redux";
+import {store} from '@/redux/store/store'
 
 import {
   QueryClient,
@@ -12,11 +13,13 @@ const TenStackQueryProvider = ({ children }: { children: ReactNode }) => {
   const [queryClient] = useState(() => new QueryClient())
 
   return (
+    <Provider store={store}>
     <QueryClientProvider client={queryClient}>
       {children}
         <ReactQueryDevtools initialIsOpen={false} />
 
     </QueryClientProvider>
+    </Provider>
   )
 }
 

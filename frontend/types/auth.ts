@@ -44,3 +44,16 @@ export interface ForgotPasswordFormData {
   email: string;
   redirect?: string;
 }
+
+
+
+export interface LoginResponse {
+  id: string;                                                                         
+  full_name: string;                                                              
+  email: string;                                                             
+  avatar_url: string;                                          
+  is_verified: boolean                                                              
+  created_at: string
+  access_token : string
+
+}

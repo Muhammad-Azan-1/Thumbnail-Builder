@@ -15,7 +15,8 @@ export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
-  const { mutateAsync: loginUser, isPending: isSubmitting, isError, error } = useLoginUser();
+
+  const { mutateAsync: loginUser, isPending: isSubmitting, isError, error , data } = useLoginUser();
 
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
