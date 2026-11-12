@@ -7,6 +7,7 @@ import { ArrowRight, LoaderCircle, ArrowLeft, CheckCircle2, Mail } from "lucide-
 import styles from "./verify-email.module.css";
 import { getRedirectHref } from "@/lib/auth-redirect";
 import { useEmailVerification } from "@/hooks/use-auth";
+import AuthLinkLoader from "../loader/loader";
 
 const CODE_LENGTH = 6;
 
@@ -116,6 +117,11 @@ export default function VerifyEmailForm() {
         </div>
       </div>
     );
+  }
+
+
+  if (token && !isError) {
+    return <AuthLinkLoader />;
   }
 
   return (

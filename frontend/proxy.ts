@@ -19,7 +19,7 @@ export const proxy = (request: NextRequest) => {
       request.nextUrl.searchParams.get("redirect"),
     );
     return NextResponse.redirect(
-      new URL(redirectPath ?? "/dashboard", request.nextUrl),
+      new URL(redirectPath ?? "/", request.nextUrl),
     );
   }
 
