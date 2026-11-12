@@ -6,39 +6,38 @@ import { useSearchParams } from "next/navigation";
 import { ArrowRight, LoaderCircle, ArrowLeft, CheckCircle2, Mail } from "lucide-react";
 import styles from "./verify-email.module.css";
 import { getRedirectHref } from "@/lib/auth-redirect";
+import { useEmailVerification } from "@/hooks/use-auth";
 
 const CODE_LENGTH = 6;
 
 export default function VerifyEmailForm() {
+
+  const  {mutateAsync : verifyEmail , isPending: isSubmitting, isError, error , isSuccess } = useEmailVerification()
+
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
+  const token = searchParams.get("token");
+
   const [digits, setDigits] = useState<string[]>(Array(CODE_LENGTH).fill(""));
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [resendCountdown, setResendCountdown] = useState(0);
-
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const submittedLinkToken = useRef<string | null>(null);
 
-  // Auto-focus first input on mount
+
+  // Verify email links automatically; focus the OTP input only for manual verification.
   useEffect(() => {
+    if (token) {
+      if (submittedLinkToken.current !== token) {
+        submittedLinkToken.current = token;
+        void verifyEmail({ verification_token: token }).catch((err: unknown) => {
+          console.error("Email link verification failed:", err);
+        });
+      }
+      return;
+    }
+
     inputRefs.current[0]?.focus();
-  }, []);
-
-  // Resend countdown timer
-  useEffect(() => {
-    if (resendCountdown <= 0) return;
-    const timer = setInterval(() => {
-      setResendCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [resendCountdown]);
+  }, [token, verifyEmail]);
 
   function handleDigitChange(index: number, value: string) {
     // Only allow single digits
@@ -90,27 +89,15 @@ export default function VerifyEmailForm() {
     setShowValidation(true);
     if (codeError) return;
 
-    setIsSubmitting(true);
     try {
       const code = digits.join("");
-      // TODO: Replace with actual API call
-      console.log("Verification code submitted:", code);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setIsSuccess(true);
+
+      const result = await verifyEmail({ otp: code });
+      console.log("Email verification successful:", result);
+
     } catch (err) {
       console.error("Verification failed:", err);
-    } finally {
-      setIsSubmitting(false);
     }
-  }
-
-  function handleResend() {
-    // TODO: Replace with actual API call
-    console.log("Resend verification code");
-    setResendCountdown(60);
-    setDigits(Array(CODE_LENGTH).fill(""));
-    setShowValidation(false);
-    inputRefs.current[0]?.focus();
   }
 
   if (isSuccess) {
@@ -178,6 +165,13 @@ export default function VerifyEmailForm() {
               {codeError}
             </p>
           )}
+          {isError && (
+            <p className="auth-field-error" role="alert" style={{ textAlign: "center", marginTop: 10 }}>
+              {error instanceof Error && error.message
+                ? error.message
+                : "Email verification failed. Please try again."}
+            </p>
+          )}
         </div>
 
         <button
@@ -198,14 +192,12 @@ export default function VerifyEmailForm() {
 
       <div className={styles.authResendWrap}>
         <span>Didn&apos;t receive a code?</span>
-        <button
-          type="button"
+        <Link
+          href={getRedirectHref("/resend-email-verification", redirect)}
           className={styles.authResendButton}
-          onClick={handleResend}
-          disabled={resendCountdown > 0 || isSubmitting}
         >
-          {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : "Resend code"}
-        </button>
+          Resend verification email
+        </Link>
       </div>
     </div>
   );

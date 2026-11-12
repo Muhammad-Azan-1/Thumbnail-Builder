@@ -1,10 +1,19 @@
 import { type ChangeEvent} from 'react'
 
 export interface SignupFormData {
-  fullName: string;
+  full_name: string;
   email: string;
   password: string;
   confirmPassword: string;
+  redirect?: string;
+}
+
+export type EmailVerificationPayload =
+  | { otp: string }
+  | { verification_token: string };
+
+export interface ResendEmailVerificationPayload {
+  email: string;
   redirect?: string;
 }
 

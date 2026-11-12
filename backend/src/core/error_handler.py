@@ -45,3 +45,6 @@ async def generic_exception_handler(request: Request, exc: Exception):
             "errors": [str(exc)],
         },
     )
+
+
+# For invalid request fields, Pydantic detects the validation problem, and FastAPI normally turns it into an HTTP 422 response with a "detail" array. Your app hasn’t registered a custom handler for that validation error, so FastAPI’s default response is used.

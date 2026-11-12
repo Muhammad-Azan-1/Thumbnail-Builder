@@ -8,22 +8,21 @@ import PasswordInput from "../password-input/password-input";
 import {SignupFormData , SignupErrors} from '@/types/auth'
 import {PASSWORD_REQUIREMENTS , getStrength} from '@/lib/auth'
 import { useSignupUser } from "@/hooks/use-auth";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getRedirectHref } from "@/lib/auth-redirect";
 
 export default function SignupForm() {
 
   const {mutateAsync : signupUser , isPending: isSubmitting, isError, error} = useSignupUser()
 
+  const router = useRouter();
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect')
-
-
   const [showValidation, setShowValidation] = useState(false);
 
 
   const [formData, setFormData] = useState<SignupFormData>({
-    fullName: "",
+    full_name: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -34,7 +33,7 @@ export default function SignupForm() {
   
     const { name, value } = e.currentTarget;
     if (
-      name === "fullName" ||
+      name === "full_name" ||
       name === "email" ||
       name === "password" ||
       name === "confirmPassword"
@@ -61,7 +60,7 @@ export default function SignupForm() {
      
      };
 
-     if (!data.fullName.trim()) errors.nameError = "Full name is required";
+     if (!data.full_name.trim()) errors.nameError = "Full name is required";
 
   if (!data.email.trim()) {
     errors.emailError = "Email is required";
@@ -95,21 +94,23 @@ const isFormValid = Object.keys(errors).length === 0;
     setShowValidation(true);
     if (!isFormValid) return;
 
-
-    // setIsSubmitting(true);
     try {
       
       console.log("Signup submitted:", {
-        fullName: formData.fullName,
+        full_name: formData.full_name,
         email: formData.email,
         password: formData.password,
         redirect: redirect,
       });
 
+      const result =
       await signupUser({
         ...formData,
         redirect: redirect ? redirect : undefined,
       });
+
+      console.log("Signup successful:", result);
+      router.push(getRedirectHref("/email-verification", redirect));
 
     } catch (err) {
       console.error("Signup failed:", err);
@@ -138,10 +139,10 @@ const isFormValid = Object.keys(errors).length === 0;
           </label>
           <input
             id="signup-name"
-            name="fullName"
+            name="full_name"
             type="text"
             className={`auth-input font-mono ${showValidation && errors.nameError ? "input-invalid" : ""}`}
-            value={formData.fullName}
+            value={formData.full_name}
             onChange={handleChange}
             placeholder="John Doe"
             disabled={isSubmitting}

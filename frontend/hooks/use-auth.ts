@@ -1,5 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
-import { SignupFormData , LoginFormData, ForgotPasswordFormData } from "@/types/auth";
+import {
+  EmailVerificationPayload,
+  ForgotPasswordFormData,
+  LoginFormData,
+  ResendEmailVerificationPayload,
+  SignupFormData,
+} from "@/types/auth";
 import { SignupUser , LoginUser, ResendVerificationEmail, forgotPassword, resetPassword, logoutUser, EmailVerification} from "@/lib/auth";
 
 
@@ -20,13 +26,13 @@ export function useLoginUser(){
 
 export function useEmailVerification(){
     return useMutation({
-        mutationFn : (token: string) => EmailVerification(token)
+        mutationFn : (payload: EmailVerificationPayload) => EmailVerification(payload)
     })
 }  
 
 export function useResendVerificationEmail(){
     return useMutation({
-        mutationFn : (email: string) =>   ResendVerificationEmail(email)
+        mutationFn : (payload: ResendEmailVerificationPayload) => ResendVerificationEmail(payload)
     })
 }   
 

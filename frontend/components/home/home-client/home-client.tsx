@@ -152,7 +152,9 @@ async function handleRetry(styleId: string) :  Promise<void>  {
           },                                                                                                                                                                 
           onFailed: (err) => handleFailerAndSucess(err.error),                                                                                                               
           onError: (err) => handleFailerAndSucess(err.error),                                                                                                                
-        });                                                                                                                                                                  
+        });      
+        
+        
       } catch (error) {                                                                                                                                                      
         handleFailerAndSucess(error instanceof Error ? error.message : "Retry failed");                                                                                      
       }                                                                                                                                                                      

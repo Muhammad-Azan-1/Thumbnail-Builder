@@ -19,7 +19,7 @@ from ..core.config import ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, ALOGRITHEM
 router = APIRouter( prefix="/auth", tags=["Auth"])
 logger = logging.getLogger(__name__)
 
-@router.post("/register" , response_model=ApiResponse[UserPublic])
+@router.post("/register" , response_model=ApiResponse)
 async def register_user(user_data : UserRegistrationRequest , session : AsyncSession = Depends(get_async_session)):
     """
     Register a new user.
