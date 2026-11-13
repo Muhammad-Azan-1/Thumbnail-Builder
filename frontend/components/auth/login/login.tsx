@@ -69,6 +69,7 @@ export default function LoginForm() {
 
     try {
       await loginUser(formData);
+      console.log("Login successful:", data);
       dispatch(login(data || null))
   
 
@@ -189,6 +190,8 @@ export default function LoginForm() {
           Create one
         </Link>
       </p>
+
+    
     </div>
   );
 }

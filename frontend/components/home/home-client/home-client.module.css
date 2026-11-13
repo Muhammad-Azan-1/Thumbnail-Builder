@@ -24,6 +24,9 @@
   box-shadow: 0 0 12px #71bd7b;
 }
 
+
+
+
 @media (max-width: 700px) {
   .studioHeader {
     align-items: flex-start;
