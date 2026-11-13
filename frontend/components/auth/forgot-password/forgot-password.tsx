@@ -1,19 +1,27 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { type FormEvent } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, LoaderCircle, ArrowLeft, Mail, CheckCircle2 } from "lucide-react";
 import { getRedirectHref } from "@/lib/auth-redirect";
+import { useForgotPassword } from "@/hooks/use-auth";
 
 export default function ForgotPasswordForm() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
-  
+
   const [email, setEmail] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+
+  const {
+    mutateAsync: forgotPassword,
+    isPending: isSubmitting,
+    isError,
+    error,
+    isSuccess,
+  } = useForgotPassword();
 
   function getEmailError(): string {
     if (!email.trim()) return "Email is required";
@@ -28,16 +36,13 @@ export default function ForgotPasswordForm() {
     setShowValidation(true);
     if (emailError) return;
 
-    setIsSubmitting(true);
     try {
-      // TODO: Replace with actual API call
-      console.log("Forgot password submitted:", { email });
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setIsSuccess(true);
+      await forgotPassword({
+        email: email.trim(),
+        ...(redirect ? { redirect } : {}),
+      });
     } catch (err) {
       console.error("Forgot password failed:", err);
-    } finally {
-      setIsSubmitting(false);
     }
   }
 
@@ -98,6 +103,14 @@ export default function ForgotPasswordForm() {
             <p className="auth-field-error" role="alert">{emailError}</p>
           )}
         </div>
+
+        {isError && (
+          <p className="auth-field-error" role="alert">
+            {error instanceof Error && error.message
+              ? error.message
+              : "Could not send the reset link. Please try again."}
+          </p>
+        )}
 
         <button
           type="submit"

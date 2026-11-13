@@ -3,7 +3,9 @@ import {
   EmailVerificationPayload,
   ForgotPasswordFormData,
   LoginFormData,
+  LoginResponse,
   ResendEmailVerificationPayload,
+  ResetPasswordPayload,
   SignupFormData,
 } from "@/types/auth";
 import { SignupUser , LoginUser, ResendVerificationEmail, forgotPassword, resetPassword, logoutUser, EmailVerification} from "@/lib/auth";
@@ -17,8 +19,9 @@ export function useSignupUser(){
 
 
 export function useLoginUser(){
-    return useMutation({
+    return useMutation<LoginResponse, Error , LoginFormData>({
         mutationFn : (data: LoginFormData) => LoginUser(data)
+        
     })
 }
 
@@ -46,8 +49,7 @@ export function useForgotPassword(){
     
 export function useResetPassword(){
     return useMutation({
-        mutationFn : ({token , newPassword} : {token : string , newPassword : string}) => 
-            resetPassword(token , newPassword)
+        mutationFn : (data: ResetPasswordPayload) => resetPassword(data)
     })
 }
 
@@ -57,3 +59,10 @@ export function useLogoutUser(){
         mutationFn : () => logoutUser()
     })
 }
+
+
+// In useMutation<LoginResponse, Error, LoginFormData>, the three types describe:
+
+// LoginResponse — what the mutation returns when it succeeds.
+// Error — the error type if it fails.
+// LoginFormData — the input you pass to mutate or mutateAsync.

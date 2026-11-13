@@ -6,7 +6,10 @@ import {
   LoginFormData,
   ResendEmailVerificationPayload,
   SignupFormData,
+  LoginResponse,
+  ResetPasswordPayload
 } from "@/types/auth";
+
 
 const AUTH_API = "/api/v1/auth";
 
@@ -18,8 +21,8 @@ export async function SignupUser(data: SignupFormData) {
   });
 }
 
-export async function LoginUser(data:LoginFormData) {
-  return await FETCH_API_METHOD(`login`, AUTH_API  , {
+export async function LoginUser(data:LoginFormData) : Promise<LoginResponse> {
+  return await FETCH_API_METHOD<LoginResponse>(`login`, AUTH_API  , {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -49,10 +52,10 @@ export async function forgotPassword( data : ForgotPasswordFormData) {
   })
 }
 
-export async function resetPassword(token:string , newPassword:string){
+export async function resetPassword(data: ResetPasswordPayload) {
   return await FETCH_API_METHOD('reset-password', AUTH_API , {
     method : "POST",
-    body : JSON.stringify({token , newPassword})
+    body : JSON.stringify(data)
   })
 }
 

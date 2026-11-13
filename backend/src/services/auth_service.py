@@ -252,11 +252,11 @@ class AuthService():
         user = (await session.exec(select(User).where(User.email == email))).first()
 
         if not user:
-            return "If an unverified account exists for that email, a password reset link has been sent."
+            return "If an  account exists for that email, a password reset link has been sent."
 
 
         if user.auth_provider.lower() == 'google':
-            return "If an unverified account exists for that email, a password reset link has been sent."
+            return "If an account exists for that email, a password reset link has been sent."
         
 
         raw_token, hashed_token  = generate_reset_password_token()
@@ -267,7 +267,7 @@ class AuthService():
 
         await session.commit()
 
-        return "If an unverified account exists for that email, a password reset link has been sent."
+        return "If an account exists for that email, a password reset link has been sent."
 
 
     @staticmethod

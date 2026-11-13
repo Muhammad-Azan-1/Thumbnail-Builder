@@ -92,6 +92,7 @@ export default function ResendEmailVerificationForm() {
             <ArrowRight className="button-arrow" aria-hidden="true" />
           )}
         </button>
+        
         {isSuccess && (
           <p
             className="auth-field-hint"

@@ -6,31 +6,26 @@ import { useSearchParams } from "next/navigation";
 import { ArrowRight, LoaderCircle, Check, X, CheckCircle2 } from "lucide-react";
 import PasswordInput from "../password-input/password-input";
 import { getRedirectHref } from "@/lib/auth-redirect";
-
-const PASSWORD_REQUIREMENTS = [
-  { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
-  { label: "One uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
-  { label: "One lowercase letter", test: (p: string) => /[a-z]/.test(p) },
-  { label: "One number", test: (p: string) => /\d/.test(p) },
-  { label: "One special character", test: (p: string) => /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/~`]/.test(p) },
-];
-
-function getStrength(metCount: number) {
-  if (metCount <= 1) return { label: "Weak", color: "#ef4444", percent: 20 };
-  if (metCount <= 2) return { label: "Fair", color: "#f36b45", percent: 40 };
-  if (metCount <= 3) return { label: "Medium", color: "#f2c94c", percent: 60 };
-  if (metCount <= 4) return { label: "Strong", color: "#a8d86e", percent: 80 };
-  return { label: "Very strong", color: "#71bd7b", percent: 100 };
-}
+import { PASSWORD_REQUIREMENTS, getStrength } from "@/lib/auth";
+import { useResetPassword } from "@/hooks/use-auth";
 
 export default function ResetPasswordForm() {
+  
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
+  const token = searchParams.get("token");
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+
+  const {
+    mutateAsync: resetPassword,
+    isPending: isSubmitting,
+    isError,
+    error,
+    isSuccess,
+  } = useResetPassword();
 
   const reqResults = PASSWORD_REQUIREMENTS.map((r) => ({
     ...r,
@@ -51,25 +46,25 @@ export default function ResetPasswordForm() {
     return "";
   }
 
+  function getTokenError(): string {
+    if (!token) return "Invalid or missing reset token. Please request a new reset link.";
+    return "";
+  }
+
   const passwordError = getPasswordError();
   const confirmError = getConfirmError();
-  const isFormValid = !passwordError && !confirmError;
+  const tokenError = getTokenError();
+  const isFormValid = !passwordError && !confirmError && !tokenError;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setShowValidation(true);
     if (!isFormValid) return;
 
-    setIsSubmitting(true);
     try {
-      // TODO: Replace with actual API call (include token from URL params)
-      console.log("Reset password submitted:", { password });
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setIsSuccess(true);
+      await resetPassword({ token: token!, new_password : password });
     } catch (err) {
       console.error("Reset password failed:", err);
-    } finally {
-      setIsSubmitting(false);
     }
   }
 
@@ -167,6 +162,18 @@ export default function ResetPasswordForm() {
             <p className="auth-field-error" role="alert">{confirmError}</p>
           )}
         </div>
+
+        {showValidation && tokenError && (
+          <p className="auth-field-error" role="alert">{tokenError}</p>
+        )}
+
+        {isError && (
+          <p className="auth-field-error" role="alert">
+            {error instanceof Error && error.message
+              ? error.message
+              : "Could not reset your password. Please try again."}
+          </p>
+        )}
 
         <button
           type="submit"

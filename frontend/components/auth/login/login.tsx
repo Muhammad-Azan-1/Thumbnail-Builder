@@ -10,8 +10,12 @@ import styles from "./login.module.css";
 import { LoginErrors, LoginFormData } from "@/types/auth";
 import { useLoginUser } from "@/hooks/use-auth";
 import { getRedirectHref, getSafeRedirectPath } from "@/lib/auth-redirect";
+import {useDispatch} from 'react-redux'
+import {AppDispatch } from '@/redux/store/store'
+import {login} from '@/redux/reducers/authReducer'
 
 export default function LoginForm() {
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
@@ -24,6 +28,8 @@ export default function LoginForm() {
     rememberMe: false,
   });
   const [showValidation, setShowValidation] = useState(false);
+
+  const dispatch = useDispatch<AppDispatch>();
 
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
     const { name, value, checked } = e.currentTarget;
@@ -63,6 +69,9 @@ export default function LoginForm() {
 
     try {
       await loginUser(formData);
+      dispatch(login(data || null))
+  
+
       router.replace(getSafeRedirectPath(redirect) ?? "/");
     } catch (err) {
       console.error("Login failed:", err);

@@ -54,13 +54,16 @@ export interface ForgotPasswordFormData {
   redirect?: string;
 }
 
-
+export interface ResetPasswordPayload {
+  token: string;
+  new_password: string;
+}
 
 export interface LoginResponse {
   id: string;                                                                         
   full_name: string;                                                              
   email: string;                                                             
-  avatar_url: string;                                          
+  avatar_url: string | null;                                          
   is_verified: boolean                                                              
   created_at: string
   access_token : string
