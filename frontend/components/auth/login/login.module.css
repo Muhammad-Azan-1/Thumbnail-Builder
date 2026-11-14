@@ -1,0 +1,28 @@
+/* Login — component-specific */
+
+.authRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.authCheckboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  font-family: var(--font-geist-mono), monospace;
+  color: #aaa6a0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.authCheckbox {
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
+  border: 1px solid #3b3b3d;
+  border-radius: 4px;
+  background: #101011;
+  accent-color: var(--orange);
+  cursor: pointer;
+}

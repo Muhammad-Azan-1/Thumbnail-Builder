@@ -1,7 +1,5 @@
 
-export const BASE_API = "/api/v1/thumbnails"
-
-export async function FETCH_API_METHOD<T>(endpoint : string , options? : RequestInit) : Promise<T> {
+export async function FETCH_API_METHOD<T>(endpoint : string , basePath: string, options? : RequestInit) : Promise<T> {
     try {
 
         const headers = new Headers(options?.headers)
@@ -10,12 +8,13 @@ export async function FETCH_API_METHOD<T>(endpoint : string , options? : Request
             headers.set("Content-Type", "application/json")
         }
 
-        const response = await fetch(`${BASE_API}/${endpoint}`,
+        const response = await fetch(`${basePath}/${endpoint}`,
         {
           ...options,
             headers 
         })
 
+    
       if (!response.ok) {                                                                                                                                                      
           // 1. Try to read JSON error message from backend                                                                                                                      
           let errorMessage = `Request failed with status ${response.status}`;                                                                                                    

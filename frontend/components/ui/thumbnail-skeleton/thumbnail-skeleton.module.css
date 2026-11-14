@@ -1,0 +1,45 @@
+.morphingMask {
+  animation: igMorph 18s infinite ease-in-out;
+}
+
+@keyframes igMorph {
+  0% {
+    mask-size: 48% 42%, 42% 38%;
+    mask-position: 0% 0%, 100% 100%;
+  }
+
+  15% {
+    mask-size: 58% 48%, 46% 42%;
+    mask-position: 100% 0%, 0% 100%;
+  }
+
+  30% {
+    mask-size: 42% 56%, 58% 40%;
+    mask-position: 100% 52%, 0% 18%;
+  }
+
+  45% {
+    mask-size: 60% 44%, 44% 58%;
+    mask-position: 52% 100%, 100% 10%;
+  }
+
+  60% {
+    mask-size: 46% 52%, 60% 42%;
+    mask-position: 0% 70%, 72% 100%;
+  }
+
+  75% {
+    mask-size: 56% 40%, 48% 54%;
+    mask-position: 18% 0%, 100% 72%;
+  }
+
+  90% {
+    mask-size: 44% 58%, 54% 44%;
+    mask-position: 100% 100%, 0% 42%;
+  }
+
+  100% {
+    mask-size: 48% 42%, 42% 38%;
+    mask-position: 0% 0%, 100% 100%;
+  }
+}

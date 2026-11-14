@@ -79,7 +79,8 @@ class AuthService():
             otp=raw_otp,
             verification_token=raw_token,
             recipient_email=user_data.email,
-            recipient_name=user_data.full_name
+            recipient_name=user_data.full_name,
+            redirect=user_data.redirect
         )
 
         return user
@@ -199,7 +200,7 @@ class AuthService():
 
 
     @staticmethod
-    async def resend_email_verification(email : str , session : AsyncSession):
+    async def resend_email_verification(email : str , redirect : str | None , session : AsyncSession):
 
       user = (await session.exec(select(User).where(User.email == email))).first()
 
@@ -218,6 +219,7 @@ class AuthService():
           verification_token=raw_token,
           recipient_email=user.email,
           recipient_name=user.full_name,
+          redirect=redirect
       )
       await session.commit()
 
@@ -245,27 +247,27 @@ class AuthService():
         }
 
     @staticmethod
-    async def forgot_password_verfication(email : str , session : AsyncSession):
+    async def forgot_password_verfication(email : str , redirect : str | None , session : AsyncSession):
 
         user = (await session.exec(select(User).where(User.email == email))).first()
 
         if not user:
-            return "If an unverified account exists for that email, a password reset link has been sent."
+            return "If an  account exists for that email, a password reset link has been sent."
 
 
         if user.auth_provider.lower() == 'google':
-            return "If an unverified account exists for that email, a password reset link has been sent."
+            return "If an account exists for that email, a password reset link has been sent."
         
 
         raw_token, hashed_token  = generate_reset_password_token()
         user.reset_password_token = hashed_token 
         user.reset_password_expiry = _now() + timedelta(minutes=5)
 
-        await EmailVerificationService.reset_password_email(raw_token , user.email , user.full_name)
+        await EmailVerificationService.reset_password_email(raw_token , user.email , user.full_name, redirect=redirect)
 
         await session.commit()
 
-        return "If an unverified account exists for that email, a password reset link has been sent."
+        return "If an account exists for that email, a password reset link has been sent."
 
 
     @staticmethod

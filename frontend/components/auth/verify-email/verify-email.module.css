@@ -1,0 +1,79 @@
+/* Verify Email — component-specific */
+
+.authOtpWrap {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+.authOtpInput {
+  width: var(--otp-box-width);
+  height: var(--otp-box-height);
+  padding: 0;
+  border: 1px solid #3b3b3d;
+  border-radius: 9px;
+  outline: none;
+  color: #f7f3ec;
+  background: #101011;
+  font-size: var(--text-xl);
+  font-weight: 800;
+  font-family: var(--font-geist-mono), monospace;
+  text-align: center;
+  caret-color: var(--orange);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.authOtpInput:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(243, 107, 69, 0.1);
+}
+
+.authOtpInput.filled {
+  border-color: #555453;
+}
+
+.authResendWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 20px;
+  font-size: var(--text-sm);
+  font-family: var(--font-geist-mono), monospace;
+  color: #686563;
+}
+
+.authResendButton {
+  color: var(--orange);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  font-family: var(--font-geist-mono), monospace;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.authResendButton:hover:not(:disabled) {
+  color: #ff8561;
+  text-decoration: underline;
+}
+
+.authResendButton:disabled {
+  color: #555453;
+  cursor: not-allowed;
+}
+
+@media (max-width: 700px) {
+  .authOtpInput {
+    width: var(--otp-box-width);
+    height: var(--otp-box-height);
+  }
+}
+
+@media (min-width: 640px) {
+  .authOtpWrap {
+    gap: 10px;
+  }
+}

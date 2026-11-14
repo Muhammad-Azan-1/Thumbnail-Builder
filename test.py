@@ -13,4 +13,5 @@ def check_number(value):
 
 # check_number("42")
 check_number("hello")
-
+from urllib.parse import urlencode
+print(urlencode({'redirect' : '/dashboard'}))
