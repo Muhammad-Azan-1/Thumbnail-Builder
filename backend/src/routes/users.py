@@ -184,7 +184,7 @@ async def google_auth(data : GoogleLoginIn , response : Response , session : Asy
         httponly=False,
         secure=False, 
         samesite="lax",
-        max_age=60*60*24
+        max_age=60 * 60 * 24
      )
 
     response.set_cookie(

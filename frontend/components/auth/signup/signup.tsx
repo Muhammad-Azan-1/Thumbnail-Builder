@@ -117,11 +117,6 @@ const isFormValid = Object.keys(errors).length === 0;
     } 
   }
 
-  function handleGoogleAuth() {
-    // TODO: Implement Google OAuth flow
-    console.log("Google auth signup triggered");
-  }
-
   return (
     <div className="auth-card">
       <div className="auth-card-header">
@@ -280,7 +275,7 @@ const isFormValid = Object.keys(errors).length === 0;
       </div>
 
 
-       <GoogleAuthButton onClick={handleGoogleAuth} disabled={isSubmitting} label="Sign up with Google" />
+       <GoogleAuthButton disabled={isSubmitting} label="Sign-up with google" />
 
 
       <p className="auth-footer">

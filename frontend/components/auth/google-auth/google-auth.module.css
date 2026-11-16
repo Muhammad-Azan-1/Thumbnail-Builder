@@ -36,3 +36,41 @@
   height: 20px;
   flex-shrink: 0;
 }
+
+
+.para {
+  margin-top: 20px;
+}
+
+/* ── Hidden GoogleLogin overlay trick ── */
+
+.googleAuthWrapper {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  /* lock height to the visible button so the iframe can't bleed out */
+  height: fit-content;
+  clip-path: inset(0);
+}
+
+.googleLoginOverlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+  /* make the invisible Google iframe fill the wrapper */
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.googleLoginOverlay > div {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.googleLoginOverlay iframe {
+  width: 100% !important;
+  height: 100% !important;
+}

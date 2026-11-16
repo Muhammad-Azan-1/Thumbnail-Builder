@@ -3,7 +3,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Provider } from "react-redux";
 import {persistor, store} from '@/redux/store/store'
 import { PersistGate } from "redux-persist/integration/react";
-
+import {GoogleOAuthProvider} from '@react-oauth/google'
 
 import {
   QueryClient,
@@ -13,7 +13,7 @@ import { useState, type ReactNode } from 'react'
 
 const TenStackQueryProvider = ({ children }: { children: ReactNode }) => {
   const [queryClient] = useState(() => new QueryClient())
-
+  console.log(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID, "CLIENT")
   return (
     // redux store provider
   <Provider store={store}>   
@@ -21,13 +21,19 @@ const TenStackQueryProvider = ({ children }: { children: ReactNode }) => {
       <PersistGate loading={null} persistor={persistor}>
     {/* // Ten Stack Query Client Provider to provide the query client to the application */}
     <QueryClientProvider client={queryClient}>
+      {/* Google Authentication provider */}
+      <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ''}>
       {children}
         {/* React Query Devtools is a set of utilities for debugging and visualizing the state of your React Query cache.
          It provides a user interface that allows you to inspect queries, mutations, and their associated data, */}
         <ReactQueryDevtools initialIsOpen={false} />
 
+      </GoogleOAuthProvider>
+
     </QueryClientProvider>
+
     </PersistGate>
+
     </Provider>
 
    

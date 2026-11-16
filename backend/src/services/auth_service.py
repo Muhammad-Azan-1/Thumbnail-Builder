@@ -20,7 +20,7 @@ import asyncio
 from ..db.db import _now
 
 
-from ..core.config import GOOGLE_CLIENT_ID
+from ..core.config import GOOGLE_CLIENT_ID , GOOGLE_CLIENT_SECRET
 
 class AuthService():
 
@@ -316,11 +316,40 @@ class AuthService():
 
         
     @staticmethod 
-    async def google_auth(token : str , session : AsyncSession):
+    async def google_auth(code : str , session : AsyncSession):
+         # ── Step 1: Exchange authorization code for tokens ──
+        import httpx
+        try:
+          async with httpx.AsyncClient() as client:
+            token_response = await client.post(url="https://oauth2.googleapis.com/token" , data={
+                   "code": code,
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,   # ← new config value
+                    "redirect_uri": "postmessage",           # required for SPA popup flow
+                    "grant_type": "authorization_code",
+            })
+
+          token_data = token_response.json()  # now we exhange a code we receive from frontend  with Jwt token now  google retunrs as the jwt token 
+          if "id_token" not in token_data:
+                raise ApplicationException(
+                    name="INVALID_GOOGLE_CODE",
+                    message="Failed to exchange Google authorization code",
+                    statusCode=401,
+                    errors=[token_data.get("error_description", "Unknown error")],
+                )
+          
+        except  httpx.HTTPError as e:
+            raise ApplicationException(
+                name="GOOGLE_TOKEN_EXCHANGE_FAILED",
+                message="Could not reach Google token endpoint",
+                statusCode=502,
+                errors=[str(e)],
+            )
+
         try:
             info = await asyncio.to_thread(
                 id_token.verify_oauth2_token,
-                token,
+                token_data["id_token"],
                 g_requests.Request(),
                 GOOGLE_CLIENT_ID,
                 clock_skew_in_seconds=10

@@ -69,3 +69,12 @@ export interface LoginResponse {
   access_token : string
 
 }
+
+export  interface GoogleAuthPayload {
+   credential : string
+}
+
+ export interface GoogleAuthButtonProps {
+  disabled?: boolean;
+  label?: string
+}

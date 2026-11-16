@@ -20,7 +20,7 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
 
-  const { mutateAsync: loginUser, isPending: isSubmitting, isError, error , data } = useLoginUser();
+  const { mutateAsync: loginUser, isPending: isSubmitting, isError, error} = useLoginUser();
 
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
@@ -68,9 +68,9 @@ export default function LoginForm() {
     if (!isFormValid) return;
 
     try {
-      await loginUser(formData);
-      console.log("Login successful:", data);
-      dispatch(login(data || null))
+     const result =  await loginUser(formData);
+     console.log("RESULT" , result)
+      dispatch(login(result))
   
 
       router.replace(getSafeRedirectPath(redirect) ?? "/");
@@ -82,10 +82,7 @@ export default function LoginForm() {
   //* replaces the login page in browser history. So pressing Back won’t 
   //* take the user straight back to the login page.
 
-  function handleGoogleAuth() {
-    // TODO: Implement Google OAuth flow
-    console.log("Google auth triggered");
-  }
+
 
   return (
     <div className="auth-card">
@@ -180,7 +177,7 @@ export default function LoginForm() {
       </div>
 
 
-        <GoogleAuthButton onClick={handleGoogleAuth} disabled={isSubmitting} />
+        <GoogleAuthButton disabled={isSubmitting } label="Login with google" />
 
     
 

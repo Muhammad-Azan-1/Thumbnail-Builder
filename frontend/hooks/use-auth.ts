@@ -7,10 +7,16 @@ import {
   ResendEmailVerificationPayload,
   ResetPasswordPayload,
   SignupFormData,
+  GoogleAuthPayload
 } from "@/types/auth";
-import { SignupUser , LoginUser, ResendVerificationEmail, forgotPassword, resetPassword, logoutUser, EmailVerification} from "@/lib/auth";
+import { SignupUser , LoginUser, ResendVerificationEmail, forgotPassword, resetPassword, logoutUser, EmailVerification, googleAuth} from "@/lib/auth";
 
 
+export function useGoogleAuth(){
+    return useMutation<LoginResponse , Error , GoogleAuthPayload>({
+        mutationFn: (data :  GoogleAuthPayload) => googleAuth(data)
+    })
+}
 export function useSignupUser(){
     return useMutation({
         mutationFn : (data: SignupFormData) => SignupUser(data)

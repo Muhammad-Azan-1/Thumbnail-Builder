@@ -92,8 +92,8 @@ const Navbar = () => {
             </AlertDialog>
           ) : (
             <>
-              <Link className={styles.navButton} href="/Login">Login</Link>
-              <Link className={styles.navButton} href="/Signup">Signup</Link>
+              <Link className={styles.navButton} href="/login">Login</Link>
+              <Link className={styles.navButton} href="/signup">Signup</Link>
             </>
           )}
         </div>

@@ -6,9 +6,9 @@ export default function Home() {
 
 
     <>
-           <Navbar />
+      <Navbar />
      <main className="studio-shell">
-      <div className="grain" aria-hidden="true" />
+      <div className="" aria-hidden="true" />
       <header className={styles.studioHeader}>
         <div className="brand-mark" aria-hidden="true">
           TB

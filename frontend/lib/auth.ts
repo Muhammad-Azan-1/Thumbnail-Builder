@@ -7,8 +7,10 @@ import {
   ResendEmailVerificationPayload,
   SignupFormData,
   LoginResponse,
-  ResetPasswordPayload
+  ResetPasswordPayload,
+  GoogleAuthPayload
 } from "@/types/auth";
+import { json } from "stream/consumers";
 
 
 const AUTH_API = "/api/v1/auth";
@@ -64,6 +66,14 @@ export async function logoutUser(){
   return await FETCH_API_METHOD('logout', AUTH_API , {
     method : "POST",
   })
+}
+
+
+export async function googleAuth(data : GoogleAuthPayload): Promise<LoginResponse>{
+    return await FETCH_API_METHOD<LoginResponse>('google-auth' , AUTH_API , {
+      method : 'POST',
+      body : JSON.stringify(data)
+    })
 }
 
 //* helper function for password strength check
