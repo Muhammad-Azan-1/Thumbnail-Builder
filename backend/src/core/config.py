@@ -40,3 +40,7 @@ EMAIL_PROVIDER=os.getenv("EMAIL_PROVIDER" ,"mailtrap")
 #* google clinet id
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID" , None)
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET" , None)
+
+
+#* IPs address storage
+IP_MEMORY = os.getenv("REDIS_URL", "memory://")

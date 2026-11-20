@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI , Request 
 from contextlib import asynccontextmanager
 from src.db.db import create_db_and_tables
 from src.routes.thumbnails import router as thumbnails_router
@@ -6,7 +6,12 @@ from src.routes.users import router as users_router
 from fastapi.middleware.cors import CORSMiddleware
 from src.core.exceptions import ApplicationException
 from src.core.error_handler import application_exception_handler, generic_exception_handler
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
+
+from src.core.limter import limiter
 from src.core.logger import setup_logging
 
 #* Initialize colored logging setup
@@ -29,6 +34,21 @@ async def lifespan(app:FastAPI):
 
 app = FastAPI(title="Thumbnail Generator", version="1.0.0", lifespan=lifespan)
 
+#* rate limiter
+# What is this and how is it working
+# app.state is a general-purpose storage space on your app object, a place to attach things you want to be reachable 
+# from anywhere the app is available. You can put any attribute on it.
+# This line attaches your limiter object to the app under the name limiter.
+# slowapi needs it because its middleware and its exception handler don’t receive your limiter variable.
+# They only receive the request and the app. So slowapi looks for the limiter at request.app.state.limiter.
+
+# Your decorator: @limiter.limit("5/minute")   → marks the route with its limit
+# slowapi later:  request.app.state.limiter    → finds the limiter to check the counts
+
+# If you forget this line, you get an error saying the app has no limiter attribute.
+#  So it’s just a way of handing the limiter to slowapi’s internal code.
+
+app.state.limiter = limiter
 
 #* Error handlers 
 #  "Whenever an ApplicationException is raised anywhere in the app and is not caught, don't crash 
@@ -40,6 +60,11 @@ app.add_exception_handler(ApplicationException, application_exception_handler)
 #  The generic_exception_handler only runs for errors that are not ApplicationException or its subclasses — like a random
 #  AttributeError, TypeError, DB crash, etc. 
 app.add_exception_handler(Exception, generic_exception_handler)
+
+# The _rate_limit_exceeded_handler only runs for error that are instance of RateLimitExceeded class
+# This line says: when you see that exception, run _rate_limit_exceeded_handler, which returns a proper 429 Too Many Requests response (with a Retry-After header).
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 
 #* routes
@@ -57,4 +82,42 @@ app.add_middleware(
 
 )
 
+#
+# Middleware is code that sits between the incoming request and your route function, so it runs for every request.
+# Request → SlowAPIMiddleware (checks the limit) → your route → response.
+# he middleware is what applies your default_limits (the 100/minute baseline) to every route automatically.
+# Routes you decorated with @limiter.limit(...) are checked with their own limit.
+# Without the middleware, only decorated routes are limited, and the default limit applies to nothing. 
+# This is why we call it the global baseline.
+app.add_middleware(SlowAPIMiddleware)   # applies default_limits to every route
 
+
+
+
+#* for debuging what the Request object holds 
+
+# @app.get("/api/debug")
+# async def debug(request: Request):
+#     return {
+#         "client_ip": request.client.host,
+#         "app_title": request.app.title,
+#         "has_limiter": hasattr(request.app.state, "limiter"),
+#     }
+
+# @app.get("/api/debug/ip")
+# async def debug_ip(request: Request):
+#     print(request , "DATA")
+#     return {
+#         "client_host": request.client.host,
+#         "x_forwarded_for": request.headers.get("x-forwarded-for"),
+#         "headers": dict(request.headers)
+#     }
+
+
+# @app.get("/api/me")
+# async def debug_ip(request: Request):
+#     print(request , "DATA")
+#     return {
+#         "name": "Azan",
+       
+#     }

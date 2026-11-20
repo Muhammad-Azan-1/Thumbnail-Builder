@@ -1,17 +1,17 @@
 
 
-def check_number(value):
-    try:
-        number = int(value)
-    except ValueError:
-        print("That wasn't a valid number")
-    else:
-        print("Conversion worked:", number)
+# def check_number(value):
+#     try:
+#         number = int(value)
+#     except ValueError:
+#         print("That wasn't a valid number")
+#     else:
+#         print("Conversion worked:", number)
 
-    print("Continuing after the try/except/else")
+#     print("Continuing after the try/except/else")
 
 
-# check_number("42")
-check_number("hello")
-from urllib.parse import urlencode
-print(urlencode({'redirect' : '/dashboard'}))
+# # check_number("42")
+# check_number("hello")
+# from urllib.parse import urlencode
+# print(urlencode({'redirect' : '/dashboard'}))
