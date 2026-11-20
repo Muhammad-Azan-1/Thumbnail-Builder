@@ -1,5 +1,6 @@
+import styles from "./thumbnail-skeleton.module.css";
 import { Loader2 } from "lucide-react";
-import {useFauxProgress} from '@/hooks/use-faux-progress'
+import {useFauxProgress} from '@/components/ui/use-faux-progress'
 export function ThumbnailSkeleton({
   prompt = "Generating your design...",
   isloading,
@@ -37,7 +38,7 @@ export function ThumbnailSkeleton({
 
         {/* Bright morphing dotted mask */}
         <div 
-          className="absolute inset-0"
+          className={`absolute inset-0 ${styles.morphingMask}`}
           style={{
             backgroundImage: 'radial-gradient(circle at center, #ffffff 1.2px, transparent 1.2px)',
             backgroundSize: '16px 16px',
@@ -48,7 +49,6 @@ export function ThumbnailSkeleton({
             WebkitMaskRepeat: 'no-repeat',
             maskRepeat: 'no-repeat',
             // animation: 'ig-morph 8s infinite',
-            animation: 'ig-morph 18s infinite ease-in-out',
           }}
         />
 
@@ -63,4 +63,3 @@ export function ThumbnailSkeleton({
 }
 
 export default ThumbnailSkeleton;
-

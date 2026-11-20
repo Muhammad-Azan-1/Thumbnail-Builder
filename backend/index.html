@@ -11,10 +11,9 @@
 
     <div class="g_id_signin" data-type="standard"></div>
     
+
     <textarea id="credential" rows="8" cols="80"
       placeholder="Your Google ID token will appear here"></textarea>
-
-
 
 
     <script>
@@ -22,6 +21,71 @@
         document.getElementById("credential").value = response.credential;
       }
     </script>
+
     <script src="https://accounts.google.com/gsi/client" async defer></script>
   </body>
 </html>
+
+<!-- 
+
+ ## 1. Google Identity Services Library (Line 26)                                                                                                                                                                           
+                                                                                                                                                                                                                             
+    <script src="https://accounts.google.com/gsi/client" async defer></script>                                                                                                                                               
+  
+  This loads Google's GSI (Google Sign-In) client library from Google's servers. It's loaded async defer so it doesn't block page rendering. This library is responsible for rendering the button and handling the entire    
+  OAuth flow.
+  
+  ## 2. Configuration Div (Lines 5–10)
+  
+    <div
+      id="g_id_onload"
+      data-client_id="GOOLGE_CLIENT_ID"
+      data-callback="handleCredentialResponse"
+      data-auto_prompt="false">
+    </div>
+  
+  When the GSI library loads, it scans the DOM for a div with id="g_id_onload" and reads these data attributes as configuration:
+  
+   Attribute                                                                                                   │ Purpose
+  ─────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   data-client_id                                                                                              │ Your Google OAuth Client ID (placeholder here — needs a real one)
+   data-callback                                                                                               │ Name of the JS function to call after a successful sign-in
+   data-auto_prompt                                                                                            │ false = don't show the One Tap popup automatically
+  
+  ## 3. The Sign-In Button (Line 12) 
+  
+    <div class="g_id_signin" data-type="standard"></div>
+  
+  The GSI library looks for any div with class="g_id_signin" and replaces it with a rendered Google Sign-In button. data-type="standard" gives you the classic rectangular button style. 
+  
+  ## 4. The Callback → Textarea (Lines 20–23) 
+  
+    function handleCredentialResponse(response) { 
+      document.getElementById("credential").value = response.credential;
+    }
+  
+  When the user clicks the button and successfully authenticates:
+    
+  1. Google's popup/redirect flow completes 
+  2. Google calls handleCredentialResponse (the function named in data-callback) 
+  3. It passes a response object containing response.credential — a JWT (JSON Web Token) — which is the user's ID token 
+  4. The function puts that JWT string into the <textarea id="credential"> 
+  
+  ## Flow Diagram
+  
+    User clicks button
+           ↓ 
+    Google OAuth popup opens
+           ↓
+    User selects Google account & consents 
+           ↓ 
+    Google returns response to page
+           ↓
+    handleCredentialResponse(response) fires 
+           ↓
+    response.credential (JWT) → textarea
+  
+  The JWT in the textarea is a Base64-encoded token containing the user's profile info (name, email, picture, etc.). In a real app, you'd send this JWT to your backend (FastAPI) to verify it and create a session — not 
+  just display it in a textarea. This page is essentially a test harness for the Google sign-in flow.
+
+───────────── -->

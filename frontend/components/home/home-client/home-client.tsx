@@ -1,8 +1,9 @@
 "use client";
 
+import styles from "./home-client.module.css";
 import { useState } from "react";
-import ThumbnailBuilder from "./thumbnail-builder";
-import ThumbnailResults from "./thumbnail-results";
+import ThumbnailBuilder from "../thumbnail-builder/thumbnail-builder";
+import ThumbnailResults from "../thumbnail-results/thumbnail-results";
 import type { StyleId } from "@/types/props";
 import  {useRetryFailedThumbnail , useRetryAllFailedThumbnails , useDeleteThumbnail, useDeleteAllThumbnails} from '@/hooks/use-thumbnail'
 import { useJobThumbnails } from "@/hooks/use-thumbnail";
@@ -15,14 +16,14 @@ export default function HomeClient() {
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [resultStyles, setResultStyles] = useState<StyleId[]>([]);  // ['bold_dramatic' ,'music_concert']
-  const [jobId, setJobId] = useState<string | null>(() => typeof window !== "undefined" ? sessionStorage.getItem("jobId"): null);
-  // const [jobId, setJobId] = useState<string | null >('133d56d2-cc00-4b94-9c15-ab2599af9ebf');
+  const [resultStyles, setResultStyles] = useState<StyleId[]>(['bold_dramatic' ,'music_concert']);  // ['bold_dramatic' ,'music_concert']
+  // const [jobId, setJobId] = useState<string | null>(() => typeof window !== "undefined" ? sessionStorage.getItem("jobId"): null);
+  const [jobId, setJobId] = useState<string | null >('133d56d2-cc00-4b94-9c15-ab2599af9ebf');
   const [generationError, setGenerationError] = useState("")
 
   // Ten stack query hooks
   const {data , isError, error} = useJobThumbnails(jobId ?? "" , isGenerating)
-  console.log("data" , data , "IsError" , isError , "Error" ,error)
+  // console.log("data" , data , "IsError" , isError , "Error" ,error)
 
   const {mutateAsync : retryFailedThumbnailsAsync} = useRetryFailedThumbnail()
   const {mutateAsync : retryAllFailedThumbnailsAsync} = useRetryAllFailedThumbnails()
@@ -151,7 +152,9 @@ async function handleRetry(styleId: string) :  Promise<void>  {
           },                                                                                                                                                                 
           onFailed: (err) => handleFailerAndSucess(err.error),                                                                                                               
           onError: (err) => handleFailerAndSucess(err.error),                                                                                                                
-        });                                                                                                                                                                  
+        });      
+        
+        
       } catch (error) {                                                                                                                                                      
         handleFailerAndSucess(error instanceof Error ? error.message : "Retry failed");                                                                                      
       }                                                                                                                                                                      
@@ -200,23 +203,8 @@ async function handleRetryAll() : Promise<void> {
 
 
   return (
-    <main className="studio-shell">
-      <div className="grain" aria-hidden="true" />
-      <header className="studio-header">
-        <div className="brand-mark" aria-hidden="true">
-          TB
-        </div>
-        <div>
-          <p className="eyebrow font-mono">AI CREATIVE STUDIO</p>
-          <h1>Thumbnail Builder</h1>
-          <p className="font-mono subtitle">Generate YouTube thumbnails with AI</p>
-        </div>
-        <div className="header-status font-mono">
-          <span /> Ready to create
-        </div>
-      </header>
-
-      {/* Main Form Builder Component */}
+    <main>
+  
       <ThumbnailBuilder
         data={data}
         onJobStarted={handleJobStarted}
@@ -238,6 +226,8 @@ async function handleRetryAll() : Promise<void> {
         onRetry={handleRetry}
         onRetryAll={handleRetryAll}
       />
+
+  
     </main>
   );
 }

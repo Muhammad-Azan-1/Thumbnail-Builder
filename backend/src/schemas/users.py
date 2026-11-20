@@ -6,6 +6,7 @@ class UserRegistrationRequest(BaseModel):
     email : EmailStr
     full_name : str
     password : str
+    redirect : str | None = None
 
 class UserLoginRequest(BaseModel):
     email : str
@@ -14,6 +15,7 @@ class UserLoginRequest(BaseModel):
 
 class ResendEmailVerificationRequest(BaseModel):
     email: EmailStr
+    redirect: str | None = None
 
 
 class TokenResponse(BaseModel):

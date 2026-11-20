@@ -25,6 +25,8 @@ def create_access_token(data: dict) -> str:
     It returns a JWT token as a string.
     ."""
     expiry = datetime.now(timezone.utc) + timedelta(days=int(ACCESS_TOKEN_EXPIRY[:-1])) # access token expiry is set to 1 day from the current time (when ever this function calls)
+    # expiry = datetime.now(timezone.utc) + timedelta(minutes=2)
+
     payload = {**data, "exp": expiry}
     return jwt.encode(payload, ACCESS_TOKEN_SECRET, algorithm=ALOGRITHEM)
   
@@ -38,6 +40,7 @@ def create_refresh_token(data: dict) -> str:
     ."""
 
     expiry = datetime.now(timezone.utc) + timedelta(days=int(REFRESH_TOKEN_EXPIRY[:-1]))
+    # expiry = datetime.now(timezone.utc) + timedelta(minutes=4)
     payload = {**data, "exp": expiry}
     return jwt.encode(payload, REFRESH_TOKEN_SECRET, algorithm=ALOGRITHEM)
 

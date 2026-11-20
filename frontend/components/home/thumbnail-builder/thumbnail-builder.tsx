@@ -1,4 +1,5 @@
 "use client";
+import styles from "./thumbnail-builder.module.css";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ChangeEvent,
@@ -15,7 +16,7 @@ import type { StyleId, ThumbnailBuilderProps } from "@/types/props";
 import { ThumbnailResponse } from "@/types/thumbnails";
 import { startThumbnailJobStream } from "@/lib/thumbnail-job-stream";
 
-const styles = [
+const styleOptions = [
   ["bold_dramatic", "Bold & Dramatic", "#f36b45"],
   ["clean_minimal", "Clean & Minimal", "#61c6c2"],
   ["vibrant_energetic", "Vibrant & Energetic", "#f2c94c"],
@@ -228,19 +229,19 @@ export default function ThumbnailBuilder({
   }
 
   return (
-    <section className="builder-panel" aria-label="Thumbnail builder">
-      <div className="builder-grid">
+    <section className={styles.builderPanel} aria-label="Thumbnail builder">
+      <div className={styles.builderGrid}>
         {/* Upload Column */}
-        <div className="upload-column">
+        <div className={styles.uploadColumn}>
           <label className="font-mono field-label" htmlFor="headshot">
             Headshot Photo <b>*</b>
           </label>
 
           <div
-            className={`upload-zone ${previewUrl ? "has-preview" : ""} ${
-              isDraggingFile ? "dragging" : ""
+            className={`${styles.uploadZone} ${
+              isDraggingFile ? styles.dragging : ""
             } ${showValidation && !file ? "input-invalid" : ""} ${
-              isGenerating ? "is-disabled" : ""
+              isGenerating ? styles.isDisabled : ""
             }`}
             aria-disabled={isGenerating}
             onClick={() => {
@@ -253,18 +254,18 @@ export default function ThumbnailBuilder({
             {previewUrl ? (
               <img src={previewUrl} alt="Selected headshot preview" />
             ) : (
-              <span className="upload-placeholder">
-                <span className="plus-icon">+</span>
+              <span className={styles.uploadPlaceholder}>
+                <span className={styles.plusIcon}>+</span>
                 <span className="font-mono">Click to upload</span>
                 <small className="font-mono">PNG, JPG up to 2MB</small>
               </span>
             )}
             {previewUrl && (
               <>
-                <span className="change-photo font-mono">Change photo</span>{" "}
-                <span className="remove-photo-wrap">
+                <span className={`${styles.changePhoto} font-mono`}>Change photo</span>{" "}
+                <span className={styles.removePhotoWrap}>
                   <button
-                    className="remove-photo"
+                    className={styles.removePhoto}
                     type="button"
                     disabled={isGenerating}
                     onClick={removeFile}
@@ -280,17 +281,17 @@ export default function ThumbnailBuilder({
           <input
             ref={fileInputRef}
             id="headshot"
-            className="visually-hidden"
+            className={styles.visuallyHidden}
             type="file"
             accept="image/png,image/jpeg,image/webp,image/jpg"
             disabled={isGenerating}
             onChange={handleFileChange}
           />
-          {file && <p className="file-name">{file.name}</p>}
+          {file && <p className={styles.fileName}>{file.name}</p>}
         </div>
 
         {/* Details Column */}
-        <div className="details-column">
+        <div className={styles.detailsColumn}>
           <label className="field-label font-mono" htmlFor="prompt">
             Describe your thumbnail <b>*</b>
           </label>
@@ -309,19 +310,19 @@ export default function ThumbnailBuilder({
             placeholder="e.g. A tech review thumbnail with text 'iPhone 17 Review' in bold letters, futuristic background..."
             rows={4}
           />
-          <div className="styles-heading">
+          <div className={styles.stylesHeading}>
             <span className="field-label pb-1 font-mono">
               Choose your styles
             </span>
-            <span className="selection-count font-mono">
+            <span className={`${styles.selectionCount} font-mono`}>
               {selectedStyles.length}/3 selected
             </span>
           </div>
 
-          <div ref={stylePickerRef} className="style-picker">
+          <div ref={stylePickerRef} className={styles.stylePicker}>
             <button
-              className={`style-picker-trigger ${
-                isStyleMenuOpen ? "open" : ""
+              className={`${styles.stylePickerTrigger} ${
+                isStyleMenuOpen ? styles.open : ""
               } ${showValidation && selectedStyles.length === 0 ? "input-invalid" : ""}`}
               type="button"
               disabled={isGenerating}
@@ -334,15 +335,15 @@ export default function ThumbnailBuilder({
                   ? "Add another style"
                   : "Select a visual direction"}
               </span>
-              <span className="chevron">⌄</span>
+              <span className={styles.chevron}>⌄</span>
             </button>
             {isStyleMenuOpen && (
               <div
-                className="style-menu font-mono"
+                className={`${styles.styleMenu} font-mono`}
                 role="listbox"
                 aria-label="Available thumbnail styles"
               >
-                {styles.map(([id, label, accent]) => {
+                {styleOptions.map(([id, label, accent]) => {
                   const selected = selectedStyles.includes(id as StyleId);
                   const disabled = !selected && selectedStyles.length >= 3;
                   return (
@@ -352,15 +353,15 @@ export default function ThumbnailBuilder({
                       aria-selected={selected}
                       disabled={disabled || isGenerating}
                       key={id}
-                      className={`style-option  ${selected ? "selected" : ""}`}
+                      className={`${styles.styleOption} ${selected ? styles.selected : ""}`}
                       onClick={() => toggleStyle(id as StyleId)}
                     >
                       <span
-                        className="style-dot "
+                        className={styles.styleDot}
                         style={{ backgroundColor: accent }}
                       />
                       <span>{label}</span>
-                      {selected && <span className="check">✓</span>}
+                      {selected && <span className={styles.check}>✓</span>}
                     </button>
                   );
                 })}
@@ -369,18 +370,18 @@ export default function ThumbnailBuilder({
           </div>
 
           <div
-            className={`selected-styles font-mono ${
-              selectedStyles.length > 0 ? "has-selections" : ""
+            className={`${styles.selectedStyles} font-mono ${
+              selectedStyles.length > 0 ? styles.hasSelections : ""
             }`}
             aria-label="Selected styles"
           >
             {selectedStyles.map((selectedId) => {
-              const style = styles.find(([id]) => id === selectedId);
+              const style = styleOptions.find(([id]) => id === selectedId);
               if (!style) return null;
               return (
-                <div className="selected-style" key={style[0]}>
+                <div className={styles.selectedStyle} key={style[0]}>
                   <span
-                    className="style-dot "
+                    className={styles.styleDot}
                     style={{ backgroundColor: style[2] }}
                   />
                   <span>{style[1]}</span>
@@ -396,12 +397,12 @@ export default function ThumbnailBuilder({
               );
             })}
           </div>
-          <p className="style-hint pt-2 font-mono">
+          <p className={`${styles.styleHint} pt-2 font-mono`}>
             Choose up to 3 styles. Each adds a different creative direction.
           </p>
           {showValidation &&
             (!file || !prompt.trim() || selectedStyles.length === 0) && (
-              <p className="validation-message font-mono" role="alert">
+              <p className={`${styles.validationMessage} font-mono`} role="alert">
                 Add a headshot, description, and at least one style to continue.
               </p>
             )}
@@ -409,14 +410,14 @@ export default function ThumbnailBuilder({
       </div>
 
       {isGenerating && (
-        <p className="builder-lock-message font-mono" role="status">
+        <p className={`${styles.builderLockMessage} font-mono`} role="status">
           Your thumbnails are generating. Editing is temporarily unavailable.
         </p>
       )}
 
       {/* Generate Button */}
       <button
-        className="generate-button"
+        className={styles.generateButton}
         type="button"
         aria-disabled={
           !file || !prompt.trim() || selectedStyles.length === 0 || isGenerating

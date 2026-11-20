@@ -42,6 +42,8 @@ export function startThumbnailJobStream({
   });
 }
 
+
+
 function updateThumbnailInCache(
   queryClient: QueryClient,
   jobId: string,

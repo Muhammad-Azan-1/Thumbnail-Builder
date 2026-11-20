@@ -19,7 +19,7 @@ from ..core.config import ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, ALOGRITHEM
 router = APIRouter( prefix="/auth", tags=["Auth"])
 logger = logging.getLogger(__name__)
 
-@router.post("/register" , response_model=ApiResponse[UserPublic])
+@router.post("/register" , response_model=ApiResponse)
 async def register_user(user_data : UserRegistrationRequest , session : AsyncSession = Depends(get_async_session)):
     """
     Register a new user.
@@ -28,7 +28,7 @@ async def register_user(user_data : UserRegistrationRequest , session : AsyncSes
     return ApiResponse(
             success=True,
             message="User registered successfully. Please check your email for verification.",
-            data=UserPublic.model_validate(user).model_dump() # this will filter all unnecessary fields and return only the public fields of the user model
+            data={} # UserPublic.model_validate(user).model_dump()  this will filter all unnecessary fields and return only the public fields of the user model
         )
 
 
@@ -37,7 +37,8 @@ async def verify_email(verification_data: EmailVerificationRequest, session: Asy
     """
     Verify a user's email using the provided verification token and OTP.
     """
-    response = await AuthService.verify_email_verification(verification_data.otp , verification_data.verification_token, session)
+    response = await AuthService.verify_email_verification(verification_data.otp , 
+    verification_data.verification_token, session)
     return ApiResponse(
             success=True,
             message=response,
@@ -78,7 +79,7 @@ async def login(user_data : UserLoginRequest ,  response: Response , session : A
 @router.post('/resend-email-verification' ,  response_model=ApiResponse)
 async def resend_email_verification(request: ResendEmailVerificationRequest, session: AsyncSession = Depends(get_async_session)):
 
-    result = await AuthService.resend_email_verification(request.email, session)
+    result = await AuthService.resend_email_verification(request.email , request.redirect, session)
 
     return ApiResponse(
         success=True,                 
@@ -93,10 +94,12 @@ async def resend_email_verification(request: ResendEmailVerificationRequest, ses
 #* or
 @router.post("/refresh-access-token" , response_model=ApiResponse[dict])
 async def refresh_access_token( response : Response , refresh_token : str | None = Cookie(default=None) , session : AsyncSession = Depends(get_async_session)): #* this parameter tells fast_api to look cookie named refresh_token in the incoming request
-
+# Refresh-token validation failures (missing, expired, invalid, or revoked)
+# require the user to log in again, so return INVALID_REFRESH_TOKEN.
+# Temporary server or database errors should remain server errors.
     if not refresh_token:
         raise ApplicationException(
-            name="MISSING_REFRESH_TOKEN",
+            name="INVALID_REFRESH_TOKEN",
             message="Refresh token is missing.",
             statusCode=401,
         )
@@ -110,19 +113,19 @@ async def refresh_access_token( response : Response , refresh_token : str | None
         )
     except jwt.ExpiredSignatureError:
         # Token was valid but has expired → user needs to refresh or re-login
-            raise UnauthorizedException(message="Refresh token has expired. Please log in again.")
+            raise UnauthorizedException(name="INVALID_REFRESH_TOKEN" ,message="Refresh token has expired. Please log in again.")
     except jwt.InvalidTokenError:
         # Token is malformed, wrong signature, or tampered with
-            raise UnauthorizedException(message="Refresh token has expired. Please log in again.")
+            raise UnauthorizedException(name="INVALID_REFRESH_TOKEN" , message="Refresh token has expired. Please log in again.")
     
     user_id = payload.get("user_id")
     if user_id is None:
-            raise UnauthorizedException(message="Could not validate credentials")
+            raise UnauthorizedException(name="INVALID_REFRESH_TOKEN",message="Could not validate credentials")
 
     user = (await session.exec(select(User).where(User.id == user_id))).first()
   
     if not user or user.refresh_token != refresh_token:
-           raise UnauthorizedException(message="refresh token has been used or expired")
+           raise UnauthorizedException(name="INVALID_REFRESH_TOKEN" , message="refresh token has been used or expired")
          
             
     result = await AuthService.refresh_acess_token(user , session)
@@ -158,7 +161,7 @@ async def refresh_access_token( response : Response , refresh_token : str | None
 @router.post('/forgot-password-verfication' , response_model=ApiResponse)
 async def forgot_password_verfication(request: ResendEmailVerificationRequest , session : AsyncSession = Depends(get_async_session)):
  
-    result = await AuthService.forgot_password_verfication(request.email, session)
+    result = await AuthService.forgot_password_verfication(request.email , request.redirect, session)
     
     return ApiResponse(
     success=True,                 
@@ -183,7 +186,7 @@ async def google_auth(data : GoogleLoginIn , response : Response , session : Asy
         httponly=False,
         secure=False, 
         samesite="lax",
-        max_age=60*60*24
+        max_age=60 * 60 * 24
      )
 
     response.set_cookie(

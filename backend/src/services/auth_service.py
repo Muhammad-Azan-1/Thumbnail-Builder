@@ -20,7 +20,7 @@ import asyncio
 from ..db.db import _now
 
 
-from ..core.config import GOOGLE_CLIENT_ID
+from ..core.config import GOOGLE_CLIENT_ID , GOOGLE_CLIENT_SECRET
 
 class AuthService():
 
@@ -79,7 +79,8 @@ class AuthService():
             otp=raw_otp,
             verification_token=raw_token,
             recipient_email=user_data.email,
-            recipient_name=user_data.full_name
+            recipient_name=user_data.full_name,
+            redirect=user_data.redirect
         )
 
         return user
@@ -199,7 +200,7 @@ class AuthService():
 
 
     @staticmethod
-    async def resend_email_verification(email : str , session : AsyncSession):
+    async def resend_email_verification(email : str , redirect : str | None , session : AsyncSession):
 
       user = (await session.exec(select(User).where(User.email == email))).first()
 
@@ -218,6 +219,7 @@ class AuthService():
           verification_token=raw_token,
           recipient_email=user.email,
           recipient_name=user.full_name,
+          redirect=redirect
       )
       await session.commit()
 
@@ -228,10 +230,10 @@ class AuthService():
     
         if not user:
             raise ApplicationException(
-        name="INVALID_REFRESH_TOKEN",
-        message="Refresh token is invalid or expired. Please log in again.",
-        statusCode=401,
-        )
+            name="INVALID_REFRESH_TOKEN",
+            message="Refresh token is invalid or expired. Please log in again.",
+            statusCode=401,
+            )
 
         access_token = create_access_token({'user_id' : user.id , "email" : user.email , "full_name" : user.full_name})
         refresh_token = create_refresh_token({'user_id' : user.id})
@@ -245,27 +247,27 @@ class AuthService():
         }
 
     @staticmethod
-    async def forgot_password_verfication(email : str , session : AsyncSession):
+    async def forgot_password_verfication(email : str , redirect : str | None , session : AsyncSession):
 
         user = (await session.exec(select(User).where(User.email == email))).first()
 
         if not user:
-            return "If an unverified account exists for that email, a password reset link has been sent."
+            return "If an  account exists for that email, a password reset link has been sent."
 
 
         if user.auth_provider.lower() == 'google':
-            return "If an unverified account exists for that email, a password reset link has been sent."
+            return "If an account exists for that email, a password reset link has been sent."
         
 
         raw_token, hashed_token  = generate_reset_password_token()
         user.reset_password_token = hashed_token 
         user.reset_password_expiry = _now() + timedelta(minutes=5)
 
-        await EmailVerificationService.reset_password_email(raw_token , user.email , user.full_name)
+        await EmailVerificationService.reset_password_email(raw_token , user.email , user.full_name, redirect=redirect)
 
         await session.commit()
 
-        return "If an unverified account exists for that email, a password reset link has been sent."
+        return "If an account exists for that email, a password reset link has been sent."
 
 
     @staticmethod
@@ -314,11 +316,40 @@ class AuthService():
 
         
     @staticmethod 
-    async def google_auth(token : str , session : AsyncSession):
+    async def google_auth(code : str , session : AsyncSession):
+         # ── Step 1: Exchange authorization code for tokens ──
+        import httpx
+        try:
+          async with httpx.AsyncClient() as client:
+            token_response = await client.post(url="https://oauth2.googleapis.com/token" , data={
+                   "code": code,
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,   # ← new config value
+                    "redirect_uri": "postmessage",           # required for SPA popup flow
+                    "grant_type": "authorization_code",
+            })
+
+          token_data = token_response.json()  # now we exhange a code we receive from frontend  with Jwt token now  google retunrs as the jwt token 
+          if "id_token" not in token_data:
+                raise ApplicationException(
+                    name="INVALID_GOOGLE_CODE",
+                    message="Failed to exchange Google authorization code",
+                    statusCode=401,
+                    errors=[token_data.get("error_description", "Unknown error")],
+                )
+          
+        except  httpx.HTTPError as e:
+            raise ApplicationException(
+                name="GOOGLE_TOKEN_EXCHANGE_FAILED",
+                message="Could not reach Google token endpoint",
+                statusCode=502,
+                errors=[str(e)],
+            )
+
         try:
             info = await asyncio.to_thread(
                 id_token.verify_oauth2_token,
-                token,
+                token_data["id_token"],
                 g_requests.Request(),
                 GOOGLE_CLIENT_ID,
                 clock_skew_in_seconds=10

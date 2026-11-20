@@ -1,23 +1,17 @@
-// const start = Date.now()
 
-// durantion = 8000 // 8s
-// setInterval(()=>{
-//   const elapsed = Date.now() - start;
-//   ceiling = 99;
+// async function refreshAccessToken(): Promise<boolean> {
 
-//   console.log(elapsed , "elapsed")
-//   console.log("Math exp" , Math.exp(-elapsed / durantion))
+//     if (!refreshRequest) {
+//         refreshRequest = fetch(REFRESH_ACCESS_TOKEN_URL, {
+//             method: "POST",
+//             credentials: "include",
+//             cache: "no-store",
+//         })
+//         .then((response) => response.ok)
+//         .finally(() => {
+//                 refreshRequest = null;
+//             });
+//     }
 
-//  let pct = 1 - Math.exp(-elapsed / durantion)
-//   console.log("PCT" , pct)
-
-//   let  final = ceiling * pct
-
-//   console.log("final" , final)
-
-//   console.log( "result",Math.min(final , ceiling))
-// },100 )
-
-
-//* continue the convo
-//agy --conversation=2cfcd260-959e-4914-9d4a-f3c43cea6c00
+//     return refreshRequest;
+// }

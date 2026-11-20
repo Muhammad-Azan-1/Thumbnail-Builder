@@ -37,6 +37,9 @@ export function useJobThumbnails(jobId:string , isGenerating : boolean = true){
         //6
         refetchOnReconnect: false,
 
+        //7 on API call failed retry only 2 times
+        retry : 1,
+
       //7 It transforms the data before giving to the component
       //   │ Yes! Every single time setQueryData is called, select runs before your component gets the data.                                                                          
       select: (data): JobQueryData => ({
