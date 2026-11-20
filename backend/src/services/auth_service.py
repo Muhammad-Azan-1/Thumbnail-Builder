@@ -230,10 +230,10 @@ class AuthService():
     
         if not user:
             raise ApplicationException(
-        name="INVALID_REFRESH_TOKEN",
-        message="Refresh token is invalid or expired. Please log in again.",
-        statusCode=401,
-        )
+            name="INVALID_REFRESH_TOKEN",
+            message="Refresh token is invalid or expired. Please log in again.",
+            statusCode=401,
+            )
 
         access_token = create_access_token({'user_id' : user.id , "email" : user.email , "full_name" : user.full_name})
         refresh_token = create_refresh_token({'user_id' : user.id})

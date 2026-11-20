@@ -7,7 +7,11 @@ export const proxy = (request: NextRequest) => {
   // FastAPI sets the login cookie with this exact name.
   const token = request.cookies.get("access_token")?.value;
   const isAuthRoute = authRoutes.includes(path);
-  
+
+
+  console.log(token , isAuthRoute , "RESULT")
+
+
   // Match private pages and their nested paths, such as /dashboard/settings.
   const isPrivateRoute = privateRoutes.some(
     (route) => path === route || path.startsWith(`${route}/`),
@@ -38,6 +42,8 @@ export const proxy = (request: NextRequest) => {
     return NextResponse.redirect(loginUrl);
   }
 
+
+  
   return NextResponse.next();
 }
 

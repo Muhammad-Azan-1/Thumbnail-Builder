@@ -13,12 +13,22 @@ import { getRedirectHref, getSafeRedirectPath } from "@/lib/auth-redirect";
 import {useDispatch} from 'react-redux'
 import {AppDispatch } from '@/redux/store/store'
 import {login} from '@/redux/reducers/authReducer'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function LoginForm() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
+  const reason = searchParams.get("reason")
 
   const { mutateAsync: loginUser, isPending: isSubmitting, isError, error} = useLoginUser();
 
@@ -30,6 +40,13 @@ export default function LoginForm() {
   const [showValidation, setShowValidation] = useState(false);
 
   const dispatch = useDispatch<AppDispatch>();
+
+  function dismissSessionExpiredDialog() {
+    const nextSearchParams = new URLSearchParams(searchParams.toString());
+    nextSearchParams.delete("reason");
+    const query = nextSearchParams.toString();
+    router.replace(query ? `/login?${query}` : "/login", { scroll: false });
+  }
 
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
     const { name, value, checked } = e.currentTarget;
@@ -85,6 +102,7 @@ export default function LoginForm() {
 
 
   return (
+    <>
     <div className="auth-card">
       <div className="auth-card-header">
         <p className="eyebrow font-mono">WELCOME BACK</p>
@@ -190,6 +208,35 @@ export default function LoginForm() {
 
     
     </div>
+
+    <AlertDialog
+      open={reason === "session-expired"}
+      onOpenChange={(open) => {
+        if (!open) dismissSessionExpiredDialog();
+      }}
+    >
+      <AlertDialogContent
+        className={styles.sessionExpiredDialog}
+      >
+        <AlertDialogHeader className={styles.sessionExpiredHeader}>
+          <AlertDialogTitle className={styles.sessionExpiredTitle}>
+            Your session expired
+          </AlertDialogTitle>
+          <AlertDialogDescription className={styles.sessionExpiredDescription}>
+            For your security, please sign in again to continue using Thumbnail Builder.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className={styles.sessionExpiredFooter}>
+          <AlertDialogAction
+            className={styles.sessionExpiredAction}
+            onClick={dismissSessionExpiredDialog}
+          >
+            Continue to sign in
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 

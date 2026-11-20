@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   AlertDialog,
@@ -44,7 +45,7 @@ const Navbar = () => {
       <div className={styles.navbarContent}>
         <div className={styles.navLinks}>
           <Link className={styles.navLink} href="/">Home</Link>
-          <Link className={styles.navLink} href="/Dashboard">Dashboard</Link>
+          <Link className={styles.navLink} href="/dashboard">Dashboard</Link>
         </div>
 
         <div className={styles.navActions}>
@@ -58,15 +59,21 @@ const Navbar = () => {
               </AlertDialogTrigger>
               <AlertDialogContent
                 className={styles.logoutDialog}
-                overlayClassName={styles.logoutDialogOverlay}
               >
                 <AlertDialogHeader className={styles.logoutDialogHeader}>
-                  <AlertDialogTitle className={styles.logoutDialogTitle}>
-                    Log out?
-                  </AlertDialogTitle>
-                  <AlertDialogDescription className={styles.logoutDialogDescription}>
-                    Are you sure you want to log out of your account?
-                  </AlertDialogDescription>
+                  <div className={styles.logoutDialogIntro}>
+                    <div className={styles.logoutDialogIcon} aria-hidden="true">
+                      <LogOut />
+                    </div>
+                    <div className={styles.logoutDialogCopy}>
+                      <AlertDialogTitle className={styles.logoutDialogTitle}>
+                        Log out?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className={styles.logoutDialogDescription}>
+                        Are you sure you want to log out of your account?
+                      </AlertDialogDescription>
+                    </div>
+                  </div>
                 </AlertDialogHeader>
                   {logoutMutation.isError && (
                     <span className={styles.logoutError} role="alert">

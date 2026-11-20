@@ -65,67 +65,95 @@
     font-size: var(--text-sm);
 }
 
-.logoutDialogOverlay[data-slot="alert-dialog-overlay"]{
-    background-color: rgb(0 0 0 / 78%);
+.logoutDialog[data-slot="alert-dialog-content"]{
+    width: min(42rem, calc(100vw - 2rem));
+    max-width: 42rem;
 }
 
-.logoutDialog[data-slot="alert-dialog-content"]{
-    width: min(38rem, calc(100vw - 2rem));
-    max-width: 38rem;
-    gap: 2rem;
-    padding: 2.5rem;
-    border: 1px solid rgb(243 107 69 / 45%);
-    border-radius: 0.75rem;
-    background-color: #000;
-    color: #f5f0ed;
-    font-family: var(--font-geist-sans), sans-serif;
-    --tw-ring-width: 0px;
+.logoutDialogHeader[data-slot="alert-dialog-header"]{
+    display: block;
+}
+
+.logoutDialogIntro{
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.logoutDialogIcon{
+    display: grid;
+    width: 3.5rem;
+    height: 3.5rem;
+    flex: 0 0 3.5rem;
+    place-items: center;
+    border: 1px solid rgb(243 107 69 / 28%);
+    border-radius: 50%;
+    background: rgb(243 107 69 / 10%);
+    color: var(--orange);
+}
+
+.logoutDialogIcon svg{
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.logoutDialogCopy{
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 0.1rem;
 }
 
 .logoutDialogTitle[data-slot="alert-dialog-title"]{
     color: #fff;
-    font-size: 1.5rem;
+    font-size: 2rem;
     font-weight: 700;
+    font-family: var(--font-geist-sans), sans-serif;
 }
 
 .logoutDialogDescription[data-slot="alert-dialog-description"]{
     color: #b7aaa3;
-    font-size: 1.125rem;
+    font-size: 1.5rem;
     line-height: 1.6;
+    font-family: var(--font-geist-sans), sans-serif;
 }
 
 .cancelButton[data-slot="alert-dialog-cancel"],
 .confirmButton[data-slot="alert-dialog-action"]{
-    min-height: 3.25rem;
-    padding-inline: 1.75rem;
+    min-height: 4rem;
+    padding-inline: 2rem;
     font-family: var(--font-geist-sans), sans-serif;
-    font-size: 1.125rem;
+    font-size: 1.25rem;
 }
 
 .logoutDialogFooter[data-slot="alert-dialog-footer"]{
-    border: 0;
-    background-color: #0a0a0a;
+    margin: 0;
 }
 
 .cancelButton[data-slot="alert-dialog-cancel"]{
-    border-color: #51433c;
-    background-color: #111;
-    color: #e6ddd8;
+    border: 1px solid var(--orange);
+    border-radius: 6px;
+    background-color: transparent;
+    color: var(--orange);
+    transition: background-color 160ms ease, color 160ms ease;
 }
 
 .cancelButton[data-slot="alert-dialog-cancel"]:hover:not(:disabled){
-    background-color: #302724;
-    color: #fff;
+    background-color: var(--orange);
+    color: #000;
 }
 
 .confirmButton[data-slot="alert-dialog-action"]{
-    background-color: var(--orange);
-    color: #111;
+    border: 1px solid var(--orange);
+    border-radius: 6px;
+    background-color: transparent;
+    color: var(--orange);
+    transition: background-color 160ms ease, color 160ms ease;
 }
 
 .confirmButton[data-slot="alert-dialog-action"]:hover:not(:disabled){
-    background-color: #ff8059;
-    color: #111;
+    background-color: var(--orange);
+    color: #000;
 }
 
 .navLink:focus-visible,
@@ -159,5 +187,75 @@
 
     .navButton{
         padding: 7px 9px;
+    }
+
+    .logoutDialog[data-slot="alert-dialog-content"]{
+        gap: 1.25rem;
+        padding: 1.5rem;
+    }
+
+    .logoutDialogTitle[data-slot="alert-dialog-title"]{
+        font-size: 1.375rem;
+    }
+
+    .logoutDialogDescription[data-slot="alert-dialog-description"]{
+        font-size: 0.9375rem;
+    }
+
+    .logoutDialogIcon{
+        width: 2.5rem;
+        height: 2.5rem;
+        flex-basis: 2.5rem;
+    }
+
+    .logoutDialogIcon svg{
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+
+    .cancelButton[data-slot="alert-dialog-cancel"],
+    .confirmButton[data-slot="alert-dialog-action"]{
+        min-height: 2.75rem;
+        padding-inline: 1rem;
+        font-size: 0.9375rem;
+    }
+}
+
+@media (max-width:640px) {
+    .logoutDialogHeader[data-slot="alert-dialog-header"]{
+        display: block !important;
+        width: 100%;
+        text-align: left !important;
+    }
+
+    .logoutDialogIntro{
+        display: grid !important;
+        grid-template-columns: 2.5rem minmax(0, 1fr);
+        align-items: center;
+        gap: 0.875rem;
+    }
+
+    .logoutDialogCopy{
+        grid-column: 2;
+        grid-row: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        text-align: left !important;
+    }
+
+    .logoutDialogTitle[data-slot="alert-dialog-title"],
+    .logoutDialogDescription[data-slot="alert-dialog-description"]{
+        text-align: left !important;
+    }
+
+    .logoutDialogFooter[data-slot="alert-dialog-footer"]{
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .cancelButton[data-slot="alert-dialog-cancel"],
+    .confirmButton[data-slot="alert-dialog-action"]{
+        width: 100%;
     }
 }

@@ -117,10 +117,10 @@ async def get_current_user(
         )
     except jwt.ExpiredSignatureError:
         # Token was valid but has expired → user needs to refresh or re-login
-        raise UnauthorizedException(message="Access token has expired")
+        raise UnauthorizedException(name="INVALID_ACCESS_TOKEN" ,  message="Access token has expired")
     except jwt.InvalidTokenError:
         # Token is malformed, wrong signature, or tampered with
-        raise UnauthorizedException(message="Could not validate credentials")
+        raise UnauthorizedException(name="INVALID_ACCESS_TOKEN" , message="Could not validate credentials")
 
     # ── STEP 3: Extract the user_id from the payload ───────────────────
     # Our login creates tokens with: {'user_id': user.id, 'email': ..., 'full_name': ...}
@@ -128,7 +128,7 @@ async def get_current_user(
     user_id: str | None = payload.get("user_id")
     if user_id is None:
         # Token is valid JWT but doesn't contain user_id → not our token
-        raise UnauthorizedException(message="Could not validate credentials")
+        raise UnauthorizedException(name="INVALID_ACCESS_TOKEN" , message="Could not validate credentials")
 
     # ── STEP 4: Fetch the user from the database ──────────────────────
     # Why not just trust the token payload?
@@ -136,14 +136,14 @@ async def get_current_user(
     # token was issued. The token is still valid, but the user is gone.
     user = (await session.exec(select(User).where(User.id == user_id))).first()
     if user is None:
-        raise UnauthorizedException(message="Could not validate credentials")
+        raise UnauthorizedException(name="INVALID_SESSION", message="Could not validate credentials")
 
     # ── STEP 5: Check if the account is still active ──────────────────
     # is_active is an admin-level kill switch.
     # Even if the token is valid and the user exists, an admin may have
     # banned/suspended the account. This check catches that.
     if not user.is_active:
-        raise UnauthorizedException(message="Account has been deactivated")
+        raise UnauthorizedException(name="ACCOUNT_DEACTIVATED" , message="Account has been deactivated" , statusCode=403)
 
     # ── ALL CHECKS PASSED — return the user to the route ──────────────
     # The route receives this as: current_user: User = Depends(get_current_user)

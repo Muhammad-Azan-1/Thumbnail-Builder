@@ -25,13 +25,13 @@ class ApplicationException(Exception):
 
 
 class NotFoundException(ApplicationException):
-    def __init__(self, message: str = "Resource not found", errors: list = None):
-        super().__init__(name="NOT_FOUND", message=message, statusCode=404, errors=errors)
+    def __init__(self, message: str = "Resource not found", errors: list = None , name : str = "NOT_FOUND"):
+        super().__init__(name=name, message=message, statusCode=404, errors=errors)
 
 
 class UnauthorizedException(ApplicationException):
-    def __init__(self, message: str = "Unauthorized", errors: list = None):
-        super().__init__(name="UNAUTHORIZED", message=message, statusCode=401, errors=errors)
+    def __init__(self, message: str = "Unauthorized", errors: list = None , name : str = "UNAUTHORIZED"):
+        super().__init__(name=name, message=message, statusCode=401, errors=errors)
 
 
 #  child class instance is also considered the instance of the parent class 

@@ -2,6 +2,7 @@ import HomeClient from "@/components/home/home-client/home-client";
 import Navbar from "@/components/navbar/Navbar";
 import styles from "@/components/home/home-client/home-client.module.css";
 export default function Home() {
+  // useJobThumbnails()
   return (
 
 
@@ -29,3 +30,6 @@ export default function Home() {
   
   )
 }
+
+
+// agy --conversation=f44c9150-17d6-41dd-8cf3-3caa0ca6a79c
