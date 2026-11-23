@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
+import { headers } from "next/headers";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  allowedDevOrigins: ["datebook-cabbie-unrefined.ngrok-free.dev"],
   async rewrites() {
     return [
       {
@@ -11,6 +13,26 @@ const nextConfig: NextConfig = {
     ]
     
   },
+
 };
 
+
 export default nextConfig;
+
+
+
+  // optional
+  // async headers(){  
+  //   return [
+  //     {
+  //       source: "/api/:path*",
+  //       headers: [
+  //         {
+  //               key: "x-forwarded-for",
+  //               value: "*",
+  //             },
+  //       ],
+  //     }
+  //   ]
+
+  // },

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends , Response , Cookie , Request
 from src.models.models import User
 import logging
 import jwt
-from sqlmodel import select , delete
+from sqlmodel import select
 
 from src.services.auth_service import AuthService
 from ..core.response import ApiResponse
@@ -12,15 +12,17 @@ from ..schemas.users import UserRegistrationRequest,  LoginUserResponse, UserLog
 from sqlmodel.ext.asyncio.session import AsyncSession
 from ..db.db import get_async_session
 from ..core.config import ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET, ALOGRITHEM
+from ..core.limter import limiter
+
+from slowapi.util import get_remote_address
 
 
-
-
-router = APIRouter( prefix="/auth", tags=["Auth"])
+router = APIRouter(prefix="/auth", tags=["Auth"])
 logger = logging.getLogger(__name__)
 
 @router.post("/register" , response_model=ApiResponse)
-async def register_user(user_data : UserRegistrationRequest , session : AsyncSession = Depends(get_async_session)):
+@limiter.limit("5/hour" , key_func=get_remote_address)
+async def register_user(request : Request ,user_data : UserRegistrationRequest , session : AsyncSession = Depends(get_async_session)):
     """
     Register a new user.
     """
@@ -33,7 +35,8 @@ async def register_user(user_data : UserRegistrationRequest , session : AsyncSes
 
 
 @router.post("/verify-email" , response_model=ApiResponse)
-async def verify_email(verification_data: EmailVerificationRequest, session: AsyncSession = Depends(get_async_session)):
+@limiter.limit("5/minute", key_func=get_remote_address)
+async def verify_email(request: Request, verification_data: EmailVerificationRequest, session: AsyncSession = Depends(get_async_session)):
     """
     Verify a user's email using the provided verification token and OTP.
     """
@@ -47,7 +50,8 @@ async def verify_email(verification_data: EmailVerificationRequest, session: Asy
 
 
 @router.post("/login" , response_model=ApiResponse[LoginUserResponse])
-async def login(user_data : UserLoginRequest ,  response: Response , session : AsyncSession = Depends(get_async_session)):
+@limiter.limit("10/minute", key_func=get_remote_address)
+async def login(request: Request, user_data : UserLoginRequest ,  response: Response , session : AsyncSession = Depends(get_async_session)):
 
     result = await AuthService.login_user(user_data , session)
 
@@ -77,9 +81,10 @@ async def login(user_data : UserLoginRequest ,  response: Response , session : A
 
 
 @router.post('/resend-email-verification' ,  response_model=ApiResponse)
-async def resend_email_verification(request: ResendEmailVerificationRequest, session: AsyncSession = Depends(get_async_session)):
+@limiter.limit("3/hour", key_func=get_remote_address)
+async def resend_email_verification(request: Request, request_data: ResendEmailVerificationRequest, session: AsyncSession = Depends(get_async_session)):
 
-    result = await AuthService.resend_email_verification(request.email , request.redirect, session)
+    result = await AuthService.resend_email_verification(request_data.email , request_data.redirect, session)
 
     return ApiResponse(
         success=True,                 
@@ -93,7 +98,8 @@ async def resend_email_verification(request: ResendEmailVerificationRequest, ses
 
 #* or
 @router.post("/refresh-access-token" , response_model=ApiResponse[dict])
-async def refresh_access_token( response : Response , refresh_token : str | None = Cookie(default=None) , session : AsyncSession = Depends(get_async_session)): #* this parameter tells fast_api to look cookie named refresh_token in the incoming request
+@limiter.limit("30/minute")
+async def refresh_access_token(request: Request, response : Response , refresh_token : str | None = Cookie(default=None) , session : AsyncSession = Depends(get_async_session)): #* this parameter tells fast_api to look cookie named refresh_token in the incoming request
 # Refresh-token validation failures (missing, expired, invalid, or revoked)
 # require the user to log in again, so return INVALID_REFRESH_TOKEN.
 # Temporary server or database errors should remain server errors.
@@ -159,9 +165,10 @@ async def refresh_access_token( response : Response , refresh_token : str | None
 
     
 @router.post('/forgot-password-verfication' , response_model=ApiResponse)
-async def forgot_password_verfication(request: ResendEmailVerificationRequest , session : AsyncSession = Depends(get_async_session)):
+@limiter.limit("3/hour",key_func=get_remote_address)
+async def forgot_password_verfication(request: Request, request_data: ResendEmailVerificationRequest , session : AsyncSession = Depends(get_async_session)):
  
-    result = await AuthService.forgot_password_verfication(request.email , request.redirect, session)
+    result = await AuthService.forgot_password_verfication(request_data.email , request_data.redirect, session)
     
     return ApiResponse(
     success=True,                 
@@ -169,15 +176,17 @@ async def forgot_password_verfication(request: ResendEmailVerificationRequest , 
          )
 
 @router.post("/reset-password" , response_model=ApiResponse)
-async def reset_password(request : ResetPasswordRequest, session : AsyncSession = Depends(get_async_session)):
-     result  = await AuthService.reset_password(request.token , request.new_password , session)
+@limiter.limit("5/minute",key_func=get_remote_address)
+async def reset_password(request: Request, request_data : ResetPasswordRequest, session : AsyncSession = Depends(get_async_session)):
+     result  = await AuthService.reset_password(request_data.token , request_data.new_password , session)
      return ApiResponse(
         message=result
      )
           
 
 @router.post("/google-auth" , response_model=ApiResponse[LoginUserResponse])
-async def google_auth(data : GoogleLoginIn , response : Response , session : AsyncSession = Depends(get_async_session)):
+@limiter.limit("10/minute" , key_func=get_remote_address)
+async def google_auth(request: Request, data : GoogleLoginIn , response : Response , session : AsyncSession = Depends(get_async_session)):
     result  = await AuthService.google_auth(data.credential , session)
 
     response.set_cookie(
@@ -203,8 +212,6 @@ async def google_auth(data : GoogleLoginIn , response : Response , session : Asy
      data=LoginUserResponse(access_token=result['access_token'] , **UserPublic.model_validate(result['user']).model_dump())  
     )
      
-
-
 
 
 @router.post("/logout", response_model=ApiResponse)

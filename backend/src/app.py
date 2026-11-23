@@ -49,6 +49,7 @@ app = FastAPI(title="Thumbnail Generator", version="1.0.0", lifespan=lifespan)
 #  So it’s just a way of handing the limiter to slowapi’s internal code.
 
 app.state.limiter = limiter
+# app.state.user = 
 
 #* Error handlers 
 #  "Whenever an ApplicationException is raised anywhere in the app and is not caught, don't crash 
@@ -75,7 +76,7 @@ app.include_router(router=users_router , prefix="/api/v1")
 #* middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=['*']
@@ -85,7 +86,7 @@ app.add_middleware(
 #
 # Middleware is code that sits between the incoming request and your route function, so it runs for every request.
 # Request → SlowAPIMiddleware (checks the limit) → your route → response.
-# he middleware is what applies your default_limits (the 100/minute baseline) to every route automatically.
+# The middleware is what applies your default_limits (the 50/minute baseline) to every route automatically.
 # Routes you decorated with @limiter.limit(...) are checked with their own limit.
 # Without the middleware, only decorated routes are limited, and the default limit applies to nothing. 
 # This is why we call it the global baseline.
@@ -96,28 +97,16 @@ app.add_middleware(SlowAPIMiddleware)   # applies default_limits to every route
 
 #* for debuging what the Request object holds 
 
-# @app.get("/api/debug")
-# async def debug(request: Request):
-#     return {
-#         "client_ip": request.client.host,
-#         "app_title": request.app.title,
-#         "has_limiter": hasattr(request.app.state, "limiter"),
-#     }
 
-# @app.get("/api/debug/ip")
-# async def debug_ip(request: Request):
-#     print(request , "DATA")
-#     return {
-#         "client_host": request.client.host,
-#         "x_forwarded_for": request.headers.get("x-forwarded-for"),
-#         "headers": dict(request.headers)
-#     }
+# @app.get("/api/data")
+# @limiter.limit("5/minute") # Limits to 5 requests per minute per IP
+# async def get_data(request: Request):
+#     # You can also manually check the IP here if needed
+#     client_ip =  request.headers.get("x-forwarded-for") 
+#     host = request.client.host
 
-
-# @app.get("/api/me")
-# async def debug_ip(request: Request):
-#     print(request , "DATA")
 #     return {
-#         "name": "Azan",
-       
+#         "message": "Success! You are within the rate limit.",
+#         "your_ip": client_ip,
+#         "host" :  host
 #     }

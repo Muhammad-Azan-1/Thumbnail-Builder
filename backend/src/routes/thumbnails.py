@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
 from ..db.db import get_async_session
@@ -12,6 +12,7 @@ from sqlmodel import select , delete
 
 
 from ..core.exceptions import ApplicationException, NotFoundException
+from ..core.limter import limiter
 from ..core.response import ApiResponse
 
 from ..schemas.thumbnails_schema import (
@@ -37,7 +38,8 @@ router = APIRouter(prefix="/thumbnails", tags=["Thumbnails"])
 
 #1 User upload the Image from frontend we saved that in imagekit
 @router.post("/upload-headshot" , response_model=ApiResponse[UploadHeadshotResponse])
-async def upload_headshot(file : UploadFile = File(...) , curr_user: User = Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def upload_headshot(request: Request, file : UploadFile = File(...) , curr_user: User = Depends(get_current_user)):
     logger.info(f"Received request to upload headshot: {file.filename}")
     file_bytes = await file.read()
     upload_response = upload_file(file_bytes, file.filename, folder="headshots" )
@@ -54,25 +56,27 @@ async def upload_headshot(file : UploadFile = File(...) , curr_user: User = Depe
 
 # 2 Then user write the prompt and select the style and the no of images to generates and click the generate button 
 @router.post("/job" , response_model=ApiResponse[UploadThumbnailResponse])
+@limiter.limit("3/hour")
 async def generate_thumbnail(
-    request : UploadThumbnailRequest,
+    request: Request,
+    thumbnail_request : UploadThumbnailRequest,
     session : AsyncSession = Depends(get_async_session),
     curr_user : User = Depends(get_current_user)
 ):
     logger.info(f"Received request to generate thumbnails")
-    if request.num_of_thumbnails > 3 or request.num_of_thumbnails < 1:
+    if thumbnail_request.num_of_thumbnails > 3 or thumbnail_request.num_of_thumbnails < 1:
         raise ApplicationException(name="VALIDATION", message="Number of thumbnails must be between 1 and 3.", statusCode=400)
 
     job = Job(
         user_id=curr_user.id,
-        user_prompt=request.user_prompt,
+        user_prompt=thumbnail_request.user_prompt,
         status=JobStatus.PENDING,
-        num_of_thumbnails=request.num_of_thumbnails,
-        headshot_url=request.headshot_url
+        num_of_thumbnails=thumbnail_request.num_of_thumbnails,
+        headshot_url=thumbnail_request.headshot_url
     )
     session.add(job)
 
-    for style in request.styles:
+    for style in thumbnail_request.styles:
         if style not in  STYLE_ORDER:
             raise ApplicationException(name="VALIDATION", message=f"Invalid style: {style}.", statusCode=400)
         else:
@@ -80,7 +84,7 @@ async def generate_thumbnail(
                 job_id=job.id,
                 style_name=style,
                 status=ThumbnailStatus.PENDING.value,
-                imageKit_url=request.headshot_url
+                imageKit_url=thumbnail_request.headshot_url
             )
             session.add(thumbnail)
 
@@ -143,7 +147,8 @@ async def get_thumbnails(job_id: str, session: AsyncSession = Depends(get_async_
 
 # if any thumbnail got failed and user wants to re-generate it
 @router.post('/retry/thumbnail/{thumbnail_id}' , response_model=ApiResponse[RetryThumbnailResponse])
-async def retry_thumbnail_generation(thumbnail_id : str  ,session :  AsyncSession = Depends(get_async_session),curr_user: User = Depends(get_current_user)):
+@limiter.limit("5/minute")
+async def retry_thumbnail_generation(request: Request, thumbnail_id : str  ,session :  AsyncSession = Depends(get_async_session),curr_user: User = Depends(get_current_user)):
 
     thumbnail = (await session.exec(
         select(Thumbnails) # get all thumbnails
@@ -189,7 +194,8 @@ async def retry_thumbnail_generation(thumbnail_id : str  ,session :  AsyncSessio
     
 # if multiple thumbnail fails and user wants to batch generate
 @router.post('/retry/job/{job_id}' , response_model=ApiResponse[list[RetryThumbnailResponse]])
-async def retry_thumbnail_generation(job_id : str  ,session :  AsyncSession = Depends(get_async_session), curr_user: User = Depends(get_current_user)):
+@limiter.limit("2/minute")
+async def retry_job_thumbnails(request: Request, job_id : str  ,session :  AsyncSession = Depends(get_async_session), curr_user: User = Depends(get_current_user)):
 
     job = (await session.exec(
         select(Job)

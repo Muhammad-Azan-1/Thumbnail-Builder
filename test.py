@@ -15,3 +15,8 @@
 # check_number("hello")
 # from urllib.parse import urlencode
 # print(urlencode({'redirect' : '/dashboard'}))
+
+# request = {"state" : "rate_limit_key" , "name" : "Azan"}
+# cached = getattr(request,state, "rate_limit_key", None)
+
+# print(cached)
