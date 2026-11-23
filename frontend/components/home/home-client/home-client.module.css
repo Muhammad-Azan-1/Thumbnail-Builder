@@ -14,7 +14,7 @@
   align-items: center;
   gap: 8px;
   color: #aaa6a0;
-  font-size: var(--text-sm);
+  font-size: var(--studio-text-sm);
 }
 .headerStatus span {
   width: 7px;

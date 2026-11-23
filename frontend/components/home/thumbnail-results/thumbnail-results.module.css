@@ -7,7 +7,7 @@
   color: #676361;
   text-align: center;
   font-family: Georgia, serif;
-  font-size: var(--text-sm);
+  font-size: var(--studio-text-sm);
   font-style: italic;
 }
 .footerNote span {
@@ -38,7 +38,7 @@
   border-radius: 7px;
   color: #f8e9e5;
   background: rgba(243, 107, 69, .12);
-  font-size: var(--text-xs);
+  font-size: var(--studio-text-xs);
   font-weight: 700;
   transition: background .2s, border-color .2s, transform .2s;
 }
@@ -54,7 +54,7 @@
   border-radius: 7px;
   color: #fca5a5;
   background: rgba(239, 68, 68, 0.1);
-  font-size: var(--text-xs);
+  font-size: var(--studio-text-xs);
   font-weight: 700;
   cursor: pointer;
   transition: background .2s, border-color .2s, transform .2s, color .2s;
@@ -74,8 +74,8 @@
   transform: none;
 }
 .resultsHeading :global(.eyebrow) { margin-bottom: 8px; }
-.resultsHeading h2 { margin: 0; color: #f7f3ec; font-family: Georgia, serif; font-size: var(--text-2xl); font-weight: 400; }
-.liveStatus { display: inline-flex; align-items: center; gap: 8px; color: #e5b27e; font-size: var(--text-sm); }
+.resultsHeading h2 { margin: 0; color: #f7f3ec; font-family: Georgia, serif; font-size: var(--studio-text-2xl); font-weight: 400; }
+.liveStatus { display: inline-flex; align-items: center; gap: 8px; color: #e5b27e; font-size: var(--studio-text-sm); }
 .liveStatus span, .readyBadge span { width: 7px; height: 7px; border-radius: 50%; background: #71bd7b; box-shadow: 0 0 10px #71bd7b; }
 .liveStatus span { animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .35; transform: scale(.7); } }
@@ -141,7 +141,7 @@
 }
 .failedThumbnailLabel {
   color: #f29a8a;
-  font-size: var(--text-xs);
+  font-size: var(--studio-text-xs);
   font-weight: 700;
   letter-spacing: .08em;
   text-transform: uppercase;
@@ -151,7 +151,7 @@
   margin: 9px 0 20px;
   overflow: hidden;
   color: #a99595;
-  font-size: var(--text-sm);
+  font-size: var(--studio-text-sm);
   line-height: 1.5;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -168,7 +168,7 @@
   border-radius: 999px;
   color: #fff;
   background: rgba(255, 255, 255, .07);
-  font-size: var(--text-sm);
+  font-size: var(--studio-text-sm);
   font-weight: 700;
   transition: border-color .2s, background .2s, transform .2s, box-shadow .2s;
 }
@@ -184,7 +184,7 @@
 }
 .thumbnailImageWrap { position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: #111; }
 .thumbnailImageWrap img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .35s; }
-.readyBadge { position: absolute; top: 10px; left: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid rgba(255,255,255,.14); border-radius: 999px; color: #f1eee8; background: rgba(12, 12, 13, .72); font-size: var(--text-xs); }
+.readyBadge { position: absolute; top: 10px; left: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid rgba(255,255,255,.14); border-radius: 999px; color: #f1eee8; background: rgba(12, 12, 13, .72); font-size: var(--studio-text-xs); }
 .thumbnailCardDeleteBtn {
   position: absolute;
   top: 10px;
@@ -224,7 +224,7 @@
   pointer-events: none;
   transform: none;
 }
-.thumbnailCardInfo { display: flex; justify-content: space-between; gap: 10px; padding: 13px 13px 8px; color: #aaa6a0; font-size: var(--text-xs); }
+.thumbnailCardInfo { display: flex; justify-content: space-between; gap: 10px; padding: 13px 13px 8px; color: #aaa6a0; font-size: var(--studio-text-xs); }
 .thumbnailCardInfo a, .variantRow a { color: var(--orange); text-decoration: none; }
 .thumbnailCardInfo a { display: inline-flex; align-items: center; gap: 4px; }
 .thumbnailCardInfo a svg { width: 13px; height: 13px; }
@@ -239,7 +239,7 @@
   background: rgba(239, 68, 68, 0.12);
   font-family: var(--font-geist-mono), monospace;
   font-weight: 700;
-  font-size: var(--text-base);
+  font-size: var(--studio-text-base);
   letter-spacing: -0.01em;
   display: flex;
   align-items: center;

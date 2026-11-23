@@ -36,7 +36,7 @@
 .label {
   color: #f7f3ec;
   font-family: var(--font-geist-mono), monospace;
-  font-size: var(--text-sm);
+  font-size: var(--studio-text-sm);
 }
 
 @keyframes spin {

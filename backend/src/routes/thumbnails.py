@@ -100,7 +100,8 @@ async def generate_thumbnail(
 
 # 3 get all thumbnails for a job id
 @router.get("/job/{job_id}" , response_model=ApiResponse[JobResponse])
-async def get_thumbnails(job_id: str, session: AsyncSession = Depends(get_async_session) , curr_user: User = Depends(get_current_user)):
+@limiter.limit("2/minute")
+async def get_thumbnails(request : Request , job_id: str, session: AsyncSession = Depends(get_async_session) , curr_user: User = Depends(get_current_user)):
     logger.info(f"Received request to get thumbnails for job_id: {job_id}")
 
     job = (await session.exec(

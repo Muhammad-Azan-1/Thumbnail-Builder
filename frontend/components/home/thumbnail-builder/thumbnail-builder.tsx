@@ -281,13 +281,12 @@ export default function ThumbnailBuilder({
           <input
             ref={fileInputRef}
             id="headshot"
-            className={styles.visuallyHidden}
+            className={styles.fileInput}
             type="file"
             accept="image/png,image/jpeg,image/webp,image/jpg"
             disabled={isGenerating}
             onChange={handleFileChange}
           />
-          {file && <p className={styles.fileName}>{file.name}</p>}
         </div>
 
         {/* Details Column */}

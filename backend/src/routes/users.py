@@ -6,7 +6,7 @@ from sqlmodel import select
 
 from src.services.auth_service import AuthService
 from ..core.response import ApiResponse
-from ..core.exceptions import (ApplicationException, NotFoundException , UnauthorizedException)
+from ..core.exceptions import (ApplicationException , UnauthorizedException)
 from ..schemas.users import UserRegistrationRequest,  LoginUserResponse, UserLoginRequest , GoogleLoginIn , ResetPasswordRequest ,UserPublic,EmailVerificationRequest, ResendEmailVerificationRequest
 
 from sqlmodel.ext.asyncio.session import AsyncSession

@@ -80,40 +80,44 @@ export async function FETCH_API_METHOD<T>(endpoint : string , basePath: string, 
 
         let response = await fetch(url, requestOptions); // main request
 
-        if (!response.ok && response.status === 401) { // if access token get expired then we get status 401
 
-            console.log("401 ERROR OCCURED") 
+
+        //* for access token error only
+        if (!response.ok && response.status === 401) { // if access token get expired then we get status 401
 
             const errorData =  await response.json();
 
             if(errorData.name == 'INVALID_ACCESS_TOKEN'){
-                console.log("401 ERROR OCCURED DUE TO INVALID ACCESS TOKEN")
-
+              
             const refreshed = await refreshAccessToken(); // re generating new acess token from refresh token
 
             if (refreshed == 'refreshed') { // if access and refresh tokens are generated 
-                console.log("RERFESH THE ACCESS TOKEN AND REFRESH TOKEN")
+            
                 response = await fetch(url, requestOptions); // again calling the API which get blocke due to acess token
 
               }else{  // if refresh token is also invalid
-                console.log("REFESH TOKEN IS ALSO EXPIRED")
+             
                 await endSession() // empty user redux auth state , logged them out ,  send them to login page                       
                throw new Error("Your session expired. Please log in again.");
               }
 
             }else{
-
-                console.log("401 ERROR OCCURED BUT NO RELATED TO THE ACCESS TOKEN EXPIRY") 
+              //* for all other 401 errors
                 throw new Error(errorData.message ?? "Request failed"); // This message is displayed by the frontend.
             }
           
         
         }
 
-        if (!response.ok) {
 
+        if(!response.ok && response.status == 429){
+
+        }
+
+
+        //* for all other errors
+        if (!response.ok) {
             const errorData = await response.json();
-            console.log("OTHER ERRORS...." , errorData)
             throw new Error(errorData.message ?? "Request failed"); // This message is displayed by the frontend.
         }
   

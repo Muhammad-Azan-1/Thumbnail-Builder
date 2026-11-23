@@ -20,7 +20,7 @@ export default function SignupForm() {
   const redirect = searchParams.get('redirect')
   const [showValidation, setShowValidation] = useState(false);
 
-
+  console.log(isSubmitting , "IS SUBMITTING")
   const [formData, setFormData] = useState<SignupFormData>({
     full_name: "",
     email: "",

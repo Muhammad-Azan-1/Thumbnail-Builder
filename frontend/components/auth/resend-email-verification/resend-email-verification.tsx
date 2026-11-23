@@ -97,7 +97,7 @@ export default function ResendEmailVerificationForm() {
           <p
             className="auth-field-hint"
             role="status"
-            style={{ color: "var(--orange)", fontSize: "var(--text-sm)" }}
+            style={{ color: "var(--orange)", fontSize: "var(--studio-text-sm)" }}
           >
             If an unverified account exists for this email, we&apos;ve sent a
             verification code. Please check your inbox.

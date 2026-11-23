@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: var(--text-sm);
+  font-size: var(--studio-text-sm);
   font-family: var(--font-geist-mono), monospace;
   color: #aaa6a0;
   cursor: pointer;

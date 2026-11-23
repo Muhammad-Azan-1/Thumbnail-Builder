@@ -32,9 +32,9 @@ def get_rate_limit_key(request: Request) -> str:
 
     if key is None:
         key = f"ip:{get_remote_address(request)}"
-        print("Rate limiter using IP-based key")
+        print("Rate limiter using IP-based key" , key)
     else:
-        print("Rate limiter using account-based key")
+        print("Rate limiter using account-based key" , key)
 
     request.state.rate_limit_key = key
     return key
@@ -43,7 +43,8 @@ limiter = Limiter(
     key_func=get_rate_limit_key,
     default_limits=["50/minute"],
     application_limits=['100/minute'],
-    storage_uri=IP_MEMORY  # memory locally, Redis in production
+    headers_enabled=True,
+    storage_uri=IP_MEMORY,  # memory locally, Redis in production
 )
 
 
