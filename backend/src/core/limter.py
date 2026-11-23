@@ -1,10 +1,8 @@
 from fastapi import Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from .config import IP_MEMORY
 import jwt
-from .config import ACCESS_TOKEN_SECRET , ALOGRITHEM
-from fastapi.security import OAuth2PasswordBearer
+from .config import ACCESS_TOKEN_SECRET, ALOGRITHEM, IP_MEMORY
 
 #? Implementing Account based Rate Limiter and IP based Rate Limiter
 # - If user is logged-IN then the rate Limiter  applied on them will be Account based (we track them from there Account how many request this account has made in X time for X route)
@@ -18,24 +16,26 @@ def get_rate_limit_key(request: Request) -> str:
     if cached: # only for the current request that has been made
         return cached
 
-    key = None
-    token = request.cookies.get("access_token")
-    if not token:
-        auth = request.headers.get("Authorization", "")
-        if auth.lower().startswith("bearer "):
-            token = auth[7:]
+    auth = request.headers.get("Authorization", "")
+    token = auth[7:].strip() if auth.lower().startswith("bearer ") else None
+    token = token or request.cookies.get("access_token")
 
+    key = None
     if token:
         try:
             payload = jwt.decode(token, ACCESS_TOKEN_SECRET, algorithms=[ALOGRITHEM])
-            if payload.get("user_id"):
-                key = f"user:{payload['user_id']}"
-                print(f"Rate limiter applied to the user with key : {key} based  on their account")
+            user_id = payload.get("user_id")
+            if user_id is not None:
+                key = f"user:{user_id}"
         except jwt.PyJWTError:
             pass  # invalid or expired token = treat as anonymous request
 
-    key = key or f"ip:{get_remote_address(request)}"
-    print(f"Rate limiter applied to the user with key : {key} based  on their IP")
+    if key is None:
+        key = f"ip:{get_remote_address(request)}"
+        print("Rate limiter using IP-based key")
+    else:
+        print("Rate limiter using account-based key")
+
     request.state.rate_limit_key = key
     return key
 
@@ -55,7 +55,7 @@ limiter = Limiter(
 #* 1) default_limits : A fallback limit for each route that has no @limiter.limit(...) decorator. It is not one shared counter for the whole application.
     #? default_limits=["50/minute"]
 
-#* 2) application_limits : A shared limit across all routes, per client key. With get_remote_address, all requests from one IP/account count toward the same application-limit counter.
+#* 2) application_limits : A shared limit across all routes, per key returned by get_rate_limit_key (account for valid tokens, otherwise IP).
    #? application_limits=["100/minute"]
 
 #* 3) Route-level decorator : A limit for one specific route:
@@ -68,9 +68,9 @@ limiter = Limiter(
 
 #* --- ?
 
-# Each non-decorated route has a default limit of 50 requests/minute per IP.
+# Each non-decorated route has a default limit of 50 requests/minute per account with a valid token, otherwise per IP.
 # A decorated route uses its decorator's limit; by default, this replaces the default limit.
-# application_limits=["100/minute"] caps all routes combined at 100 requests/minute per IP.
+# application_limits=["100/minute"] caps all routes combined at 100 requests/minute per account with a valid token, otherwise per IP.
 
 #* ----?
 
