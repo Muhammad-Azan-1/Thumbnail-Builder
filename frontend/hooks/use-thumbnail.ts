@@ -2,6 +2,7 @@ import { useMutation , useQuery } from "@tanstack/react-query";
 import {createJob , get_all_thumbnails , retryAllFailedThumbnails ,retryFailedThumbnail , delete_thumbnail ,batch_delete_thumbnails} from "@/lib/job"
 import {CreateJob, JobQueryData } from "@/types/job"
 import { ThumbnailResponse } from "@/types/thumbnails";
+// import { RateLimitError } from "@/lib/client";
 
 // ten stack query used for testing in this project only !
 

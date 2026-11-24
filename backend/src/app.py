@@ -5,8 +5,11 @@ from src.routes.thumbnails import router as thumbnails_router
 from src.routes.users import router as users_router
 from fastapi.middleware.cors import CORSMiddleware
 from src.core.exceptions import ApplicationException
-from src.core.error_handler import application_exception_handler, generic_exception_handler
-from slowapi import _rate_limit_exceeded_handler
+from src.core.error_handler import (
+    application_exception_handler,
+    generic_exception_handler,
+    rate_limit_exceeded_handler,
+)
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
@@ -49,7 +52,7 @@ app = FastAPI(title="Thumbnail Generator", version="1.0.0", lifespan=lifespan)
 #  So it’s just a way of handing the limiter to slowapi’s internal code.
 
 app.state.limiter = limiter
-# app.state.user = 
+ 
 
 #* Error handlers 
 #  "Whenever an ApplicationException is raised anywhere in the app and is not caught, don't crash 
@@ -62,9 +65,9 @@ app.add_exception_handler(ApplicationException, application_exception_handler)
 #  AttributeError, TypeError, DB crash, etc. 
 app.add_exception_handler(Exception, generic_exception_handler)
 
-# The _rate_limit_exceeded_handler only runs for error that are instance of RateLimitExceeded class
-# This line says: when you see that exception, run _rate_limit_exceeded_handler, which returns a proper 429 Too Many Requests response (with a Retry-After header).
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# This handler preserves SlowAPI's 429 and rate-limit headers, and adds a scope
+# header so the frontend can distinguish application-wide limits from route limits.
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 
 

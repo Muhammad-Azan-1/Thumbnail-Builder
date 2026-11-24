@@ -16,10 +16,11 @@ export default function HomeClient() {
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [resultStyles, setResultStyles] = useState<StyleId[]>(['bold_dramatic' ,'music_concert']);  // ['bold_dramatic' ,'music_concert']
-  // const [jobId, setJobId] = useState<string | null>(() => typeof window !== "undefined" ? sessionStorage.getItem("jobId"): null);
-  const [jobId, setJobId] = useState<string | null >('133d56d2-cc00-4b94-9c15-ab2599af9ebf');
+  const [resultStyles, setResultStyles] = useState<StyleId[]>([]);  // ['bold_dramatic' ,'music_concert']
+  const [jobId, setJobId] = useState<string | null>(() => typeof window !== "undefined" ? sessionStorage.getItem("jobId"): null);
+  // const [jobId, setJobId] = useState<string | null >('133d56d2-cc00-4b94-9c15-ab2599af9ebf');
   const [generationError, setGenerationError] = useState("")
+
 
   // Ten stack query hooks
   const {data , isError, error} = useJobThumbnails(jobId ?? "" , isGenerating)
@@ -40,6 +41,7 @@ export default function HomeClient() {
       setJobId(null);
     }
   }, [isError, error]);
+  
 
   function handleJobStarted(styles: StyleId[]) {
     setIsGenerating(true);

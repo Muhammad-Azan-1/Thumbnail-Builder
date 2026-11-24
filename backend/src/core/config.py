@@ -44,3 +44,5 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET" , None)
 
 #* IPs address storage
 IP_MEMORY = os.getenv("REDIS_URL", "memory://")
+
+

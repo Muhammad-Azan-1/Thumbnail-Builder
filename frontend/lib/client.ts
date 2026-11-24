@@ -1,67 +1,10 @@
 
-import {logout} from '@/redux/reducers/authReducer'
-import { store } from "@/redux/store/store";
+import {createRateLimitError} from './rateLimit'
+import { endSession , refreshAccessToken } from './refreshAccessToken'
 
 
-const REFRESH_ACCESS_TOKEN_URL = "/api/v1/auth/refresh-access-token";
-
-
-async function refreshAccessToken(): Promise< "refreshed" | "expired"> {
-    console.log("CALLED REFRESH ACCESS TOKEN FUNCTION FROM FRONTEND")
-    try {
-        const refreshRequest = await fetch(REFRESH_ACCESS_TOKEN_URL, {
-            method: "POST",
-            credentials: "include",
-            cache: "no-store",
-        })
-
-        console.log("REPONSE RECEIVED FROM  REFRESH ACCESS TOKEN FRONTEND  : " , refreshRequest)
-
-         if (refreshRequest.ok) return "refreshed"
-
-        if (!refreshRequest.ok && refreshRequest.status == 401) return 'expired'
-          
-          const errorData = await refreshRequest.json()
-          throw new Error(errorData.message ?? "Request Failed")
-        
-    } catch (error) {
-          // 5xx responses and other temporary failures don't log the user out.
-        throw error instanceof Error ? error : new Error(String(error));
-
-    }
-
-}
-
-async function endSession() {
-  store.dispatch(logout());
-
-  try {
-    const response = await fetch("/api/v1/auth/logout", {
-      method: "POST",
-      credentials: "include",
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      console.error("Backend could not clear the session cookies.");
-    }
-  } catch (error) {
-    console.error("Could not reach the logout endpoint:", error);
-  }
-
-const returnTo = `${window.location.pathname}${window.location.search}`;
-console.log("User Current page" , returnTo)
-const loginUrl = new URL("/login", window.location.origin);
-
-
-loginUrl.searchParams.set("reason", "session-expired");
-loginUrl.searchParams.set("redirect", returnTo);
-
-window.location.replace(`${loginUrl.pathname}${loginUrl.search}`);
-}
-
-
-export async function FETCH_API_METHOD<T>(endpoint : string , basePath: string, options? : RequestInit) : Promise<T> {
+//* Main API caller function
+export async function FETCH_API_METHOD<T>(basePath: string, endpoint: string, options?: RequestInit): Promise<T> {
     console.log("calling fetch API method")
     try {
 
@@ -110,8 +53,8 @@ export async function FETCH_API_METHOD<T>(endpoint : string , basePath: string, 
         }
 
 
-        if(!response.ok && response.status == 429){
-
+        if (response.status === 429) {
+            throw createRateLimitError(response);
         }
 
 

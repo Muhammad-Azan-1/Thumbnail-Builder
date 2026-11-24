@@ -35,7 +35,7 @@ async def register_user(request : Request ,user_data : UserRegistrationRequest ,
 
 
 @router.post("/verify-email" , response_model=ApiResponse)
-@limiter.limit("5/minute", key_func=get_remote_address)
+@limiter.limit("3/minute", key_func=get_remote_address)
 async def verify_email(request: Request, verification_data: EmailVerificationRequest, session: AsyncSession = Depends(get_async_session)):
     """
     Verify a user's email using the provided verification token and OTP.
@@ -50,7 +50,7 @@ async def verify_email(request: Request, verification_data: EmailVerificationReq
 
 
 @router.post("/login" , response_model=ApiResponse[LoginUserResponse])
-@limiter.limit("10/minute", key_func=get_remote_address)
+@limiter.limit("6/minute", key_func=get_remote_address)
 async def login(request: Request, user_data : UserLoginRequest ,  response: Response , session : AsyncSession = Depends(get_async_session)):
 
     result = await AuthService.login_user(user_data , session)
@@ -98,7 +98,7 @@ async def resend_email_verification(request: Request, request_data: ResendEmailV
 
 #* or
 @router.post("/refresh-access-token" , response_model=ApiResponse[dict])
-@limiter.limit("30/minute")
+@limiter.limit("10/minute")
 async def refresh_access_token(request: Request, response : Response , refresh_token : str | None = Cookie(default=None) , session : AsyncSession = Depends(get_async_session)): #* this parameter tells fast_api to look cookie named refresh_token in the incoming request
 # Refresh-token validation failures (missing, expired, invalid, or revoked)
 # require the user to log in again, so return INVALID_REFRESH_TOKEN.
@@ -176,7 +176,7 @@ async def forgot_password_verfication(request: Request, request_data: ResendEmai
          )
 
 @router.post("/reset-password" , response_model=ApiResponse)
-@limiter.limit("5/minute",key_func=get_remote_address)
+@limiter.limit("3/minute",key_func=get_remote_address)
 async def reset_password(request: Request, request_data : ResetPasswordRequest, session : AsyncSession = Depends(get_async_session)):
      result  = await AuthService.reset_password(request_data.token , request_data.new_password , session)
      return ApiResponse(

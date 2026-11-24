@@ -97,7 +97,6 @@ async def generate_thumbnail(
         data=UploadThumbnailResponse(job_id=job.id)
     )
 
-
 # 3 get all thumbnails for a job id
 @router.get("/job/{job_id}" , response_model=ApiResponse[JobResponse])
 @limiter.limit("2/minute")
@@ -144,8 +143,6 @@ async def get_thumbnails(request : Request , job_id: str, session: AsyncSession 
     )
 
 
-
-
 # if any thumbnail got failed and user wants to re-generate it
 @router.post('/retry/thumbnail/{thumbnail_id}' , response_model=ApiResponse[RetryThumbnailResponse])
 @limiter.limit("5/minute")
@@ -190,7 +187,6 @@ async def retry_thumbnail_generation(request: Request, thumbnail_id : str  ,sess
         message="Thumbnail retry started.",
         data=RetryThumbnailResponse(thumbnail_id=thumbnail.id , job_id=job.id , status=ThumbnailStatus.PENDING)
     )
-    
 
     
 # if multiple thumbnail fails and user wants to batch generate

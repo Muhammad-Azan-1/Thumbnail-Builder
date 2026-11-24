@@ -1,9 +1,20 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from .exceptions import ApplicationException
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    """Include the violated limit's scope so the frontend can cooldown the right actions."""
+    response = _rate_limit_exceeded_handler(request, exc)
+    response.headers["X-RateLimit-Scope"] = (
+        "application" if exc.limit.scope == "global" else "route"
+    )
+    return response
 
 
 async def application_exception_handler(request: Request, exc: ApplicationException):

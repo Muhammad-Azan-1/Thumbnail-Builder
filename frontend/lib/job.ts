@@ -2,13 +2,22 @@ import { FETCH_API_METHOD } from "./client";
 import { CreateJob, CreateJobResponse, RetryThumbnailResponse  , JobResponse} from '../types/job'
 import {SSE_EVENTS} from '../types/SSE_Events'
 import {JobEventHandlers } from '../types/thumbnails'
+import type { UploadHeadshotResponse } from "@/types/upload";
 
 const THUMBNAILS_API = "/api/v1/thumbnails";
 
+export async function uploadHeadshot(file: File): Promise<UploadHeadshotResponse> {
+    const form = new FormData();
+    form.append("file", file);
+    return FETCH_API_METHOD<UploadHeadshotResponse>(THUMBNAILS_API, "/upload-headshot", {
+        method: "POST",
+        body: form,
+    });
+}
 
 // createjob -> call backend to create all thumbnails (which lies in that job)
 export async function createJob(data:CreateJob){
-    return await FETCH_API_METHOD<CreateJobResponse>("/job" , THUMBNAILS_API, {
+    return await FETCH_API_METHOD<CreateJobResponse>(THUMBNAILS_API, "/job", {
     method : 'POST',
     body : JSON.stringify(data)
     } )
@@ -18,7 +27,7 @@ export async function createJob(data:CreateJob){
 
 // get all thumbnails for a job id
 export async function get_all_thumbnails(job_id : string){
-    return await FETCH_API_METHOD<JobResponse>(`/job/${job_id}` ,  THUMBNAILS_API , {
+    return await FETCH_API_METHOD<JobResponse>(THUMBNAILS_API, `/job/${job_id}`, {
         method : "GET",
     })
 }
@@ -26,14 +35,14 @@ export async function get_all_thumbnails(job_id : string){
 
 //retry single failed thumbnails
 export async function retryFailedThumbnail(thumbnailId: string) {
-    return await FETCH_API_METHOD<RetryThumbnailResponse>(`/retry/thumbnail/${thumbnailId}`, THUMBNAILS_API , {
+    return await FETCH_API_METHOD<RetryThumbnailResponse>(THUMBNAILS_API, `/retry/thumbnail/${thumbnailId}`, {
         method: 'POST',
     });
 }
 
 //retry All failed thumbnails
 export async function retryAllFailedThumbnails(jobId: string) {
-    return await FETCH_API_METHOD(`/retry/job/${jobId}`, THUMBNAILS_API , {
+    return await FETCH_API_METHOD(THUMBNAILS_API, `/retry/job/${jobId}`, {
         method: 'POST',
     });
 }
@@ -42,7 +51,7 @@ export async function retryAllFailedThumbnails(jobId: string) {
 
 // delete batch thumbnails
 export async function batch_delete_thumbnails(thumbnail_ids: string[]){
-    return await FETCH_API_METHOD(`/delete-batch` , THUMBNAILS_API , {
+    return await FETCH_API_METHOD(THUMBNAILS_API, `/delete-batch`, {
         body : JSON.stringify({'thumbnail_ids' : thumbnail_ids}),
         method : "DELETE"
     })
@@ -51,7 +60,7 @@ export async function batch_delete_thumbnails(thumbnail_ids: string[]){
 
 // delete single thumbnails
 export async function delete_thumbnail(thumbnail_id : string){
-    return await FETCH_API_METHOD(`/delete/${thumbnail_id}` , THUMBNAILS_API , {
+    return await FETCH_API_METHOD(THUMBNAILS_API, `/delete/${thumbnail_id}`, {
         method : "DELETE"
     })
 

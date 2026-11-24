@@ -440,6 +440,8 @@ export default function ThumbnailBuilder({
           <ArrowRight className="button-arrow" aria-hidden="true" />
         )}
       </button>
+
+      
     </section>
   );
 }

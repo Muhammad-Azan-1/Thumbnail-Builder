@@ -1,6 +1,5 @@
-
-
 import { JobQueryData } from "./job";
+
 export type StyleId =
   | "bold_dramatic"
   | "clean_minimal"
@@ -29,6 +28,8 @@ export interface ThumbnailBuilderProps {
   onJobCreated: (jobId: string) => void;
   onFailedOrSucess: (error?: string) => void;
   isGenerating: boolean;
+  // isRateLimited: boolean;
+  // rateLimitSecondsRemaining: number | null;
   data?: JobQueryData
 }
 
@@ -38,6 +39,10 @@ export interface ThumbnailResultsProps {
   isDeleting?: boolean;
   resultStyles: StyleId[];
   generationError: string;
+  // rateLimitError: RateLimitError | null;
+  // rateLimitSecondsRemaining: number | null;
+  // isRetryRateLimited: boolean;
+  // isDeleteRateLimited: boolean;
   onRetry?: (styleId: string) => void;
   onRetryAll?: () => void;
   onDelete?: (thumbnailId: string, styleId?: string) => void;

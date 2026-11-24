@@ -25,6 +25,7 @@ dependencies = [
     "sqlmodel>=0.0.42",
     "uvicorn>=0.52.4",
     "slowapi>=0.1.10",
+    "redis>=8.2.0",
 ]
 
 [project.scripts]
