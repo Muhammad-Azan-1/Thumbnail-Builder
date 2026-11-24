@@ -34,4 +34,13 @@ class UnauthorizedException(ApplicationException):
         super().__init__(name=name, message=message, statusCode=401, errors=errors)
 
 
+class CooldownStatusRateLimitException(ApplicationException):
+    def __init__(self, retry_after: int):
+        super().__init__(
+            name="COOLDOWN_STATUS_RATE_LIMITED",
+            message="Cooldown status request limit exceeded.",
+            statusCode=429,
+        )
+        self.retry_after = retry_after
+
 #  child class instance is also considered the instance of the parent class 

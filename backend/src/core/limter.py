@@ -41,8 +41,8 @@ def get_rate_limit_key(request: Request) -> str:
 
 limiter = Limiter(
     key_func=get_rate_limit_key,
-    default_limits=["50/minute"],
-    application_limits=['100/minute'],
+    default_limits=["100/minute"],
+    application_limits=['200/minute'],
     headers_enabled=True,
     storage_uri=IP_MEMORY,  # memory locally, Redis in production
 )

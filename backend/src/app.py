@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from src.db.db import create_db_and_tables
 from src.routes.thumbnails import router as thumbnails_router
 from src.routes.users import router as users_router
+from src.routes.cooldowns import router as cooldowns_router
 from fastapi.middleware.cors import CORSMiddleware
 from src.core.exceptions import ApplicationException
 from src.core.error_handler import (
@@ -15,6 +16,7 @@ from slowapi.middleware import SlowAPIMiddleware
 
 
 from src.core.limter import limiter
+from src.core.cooldowns import rate_limiter_cooldown_store
 from src.core.logger import setup_logging
 
 #* Initialize colored logging setup
@@ -29,10 +31,19 @@ setup_logging()
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     # Perform any startup tasks here
+    try:
+        await rate_limiter_cooldown_store.verify_connection()
+    except Exception:
+        # Do not log the Redis URL; connection details can contain credentials.
+        import logging
+        logging.getLogger(__name__).exception("Configured Redis service is unavailable")
+        raise
     await create_db_and_tables()
     yield
-    print("application stopped")
     # Perform any shutdown tasks here
+    await rate_limiter_cooldown_store.close()
+    print("application stopped")
+
 
 
 app = FastAPI(title="Thumbnail Generator", version="1.0.0", lifespan=lifespan)
@@ -74,6 +85,7 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 #* routes
 app.include_router(router=thumbnails_router , prefix="/api/v1") # this becomes /api/v1/thumbnails (prefix combines with the prefix of thumbnails_router)
 app.include_router(router=users_router , prefix="/api/v1") 
+app.include_router(router=cooldowns_router, prefix="/api/v1")
 
 
 #* middleware
