@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch } from "react-redux";
-import { GoogleLogin } from "@react-oauth/google";
 import { useGoogleAuth } from "@/hooks/use-auth";
 import { GoogleAuthButtonProps } from "@/types/auth";
 import { AppDispatch } from "@/redux/store/store";
@@ -11,6 +10,11 @@ import { login } from "@/redux/reducers/authReducer";
 import { getSafeRedirectPath } from "@/lib/auth-redirect";
 import styles from './google-auth.module.css'
 import { useGoogleLogin } from "@react-oauth/google";
+import CooldownTimer from "@/components/ui/use-cooldown-timer";
+import { RateLimitError } from "@/lib/rateLimit";
+import { RATE_LIMIT_ACTIONS } from "@/constants";
+import { CooldownTimerState } from "@/types/rateLimit";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { LoaderCircle , Check } from "lucide-react";
 
@@ -18,14 +22,25 @@ export default function GoogleAuthButton({
   disabled = false,
   label,
 }: GoogleAuthButtonProps) {
-  
+  const queryClient = useQueryClient();
+
+  const { mutateAsync: googleAuthMutation , isPending, isError , error , isSuccess } = useGoogleAuth();
+
+  //* cooldown timer and rate limiter setup
+  const isRateLimited = error instanceof RateLimitError;
+  const rateLimitError = isRateLimited ? error : null;
+  const [cooldown, setCooldown] = useState<CooldownTimerState>({ isActive: false });
+
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
   const dispatch = useDispatch<AppDispatch>();
 
-  const { mutateAsync: googleAuthMutation , isPending, isError , error , isSuccess } = useGoogleAuth();
 
+
+  //* local error states used for error and submission instead of the hook provided values 
+  //* due to useGoogleAuth function google auth setup
   const [localError, setLocalError] = useState<string | null>(null);
   const [isSubmitting  , setIsSubmitting] = useState(false)
 
@@ -35,7 +50,7 @@ export default function GoogleAuthButton({
   async function handleGoogleAuth(response: any): Promise<void> {
 
     try {
-       setLocalError(null);
+      setLocalError(null);
     const result = await googleAuthMutation({credential: response.code})
     console.log("GOOGLE AUTH RETURNED RESULT" , result)
     dispatch(login(result))
@@ -44,7 +59,11 @@ export default function GoogleAuthButton({
     setTimeout(()=>{router.replace(getSafeRedirectPath(redirect) ?? "/");},1500)
       
     } catch (error) {
-        console.log("ERROR" , error)
+      setIsSubmitting(false);
+      if (error instanceof RateLimitError) {
+        await queryClient.invalidateQueries({ queryKey: ["cooldown"] });
+      }
+      console.log("ERROR" , error)
     }
    
 
@@ -82,7 +101,7 @@ export default function GoogleAuthButton({
       type="button"
       className={styles.googleAuthButton}
       onClick={()=> { googleLogin(); setIsSubmitting(true)}}
-      disabled={disabled || isSubmitting}
+      disabled={disabled || isSubmitting || cooldown.isActive}
       aria-label={label}
     >
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -118,12 +137,19 @@ export default function GoogleAuthButton({
 
     </button>
 
-      {localError ||  (isError)  && (
+      {localError ||  (isError && !isRateLimited)  && (
         <p className={`auth-field-error ${styles.para}`} role="alert">
           { localError || error.message }
         
         </p>
       )}
+
+      <CooldownTimer
+        action={rateLimitError?.action ?? RATE_LIMIT_ACTIONS.auth.googleAuth}
+        isRateLimited={isRateLimited}
+        retryAfterExpiresAt={rateLimitError?.retryAfterExpiresAt}
+        onCooldownChange={setCooldown}
+      />
     </div>
 
      

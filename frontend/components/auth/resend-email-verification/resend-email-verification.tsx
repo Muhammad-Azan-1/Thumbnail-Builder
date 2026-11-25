@@ -6,19 +6,30 @@ import { useSearchParams } from "next/navigation";
 import { ArrowRight, ArrowLeft, LoaderCircle } from "lucide-react";
 import { useResendVerificationEmail } from "@/hooks/use-auth";
 import { getRedirectHref } from "@/lib/auth-redirect";
+import CooldownTimer from "@/components/ui/use-cooldown-timer";
+import { RateLimitError } from "@/lib/rateLimit";
+import { RATE_LIMIT_ACTIONS } from "@/constants";
+import { CooldownTimerState } from "@/types/rateLimit";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function ResendEmailVerificationForm() {
+  const queryClient = useQueryClient();
+  
+  const { mutateAsync: resendVerificationEmail,isPending: isSubmitting,isError,error,isSuccess,} = useResendVerificationEmail()
+
+  //* cooldown timer and rate limiter setup
+  const [cooldown, setCooldown] = useState<CooldownTimerState>({ isActive: false });
+  const isRateLimited = error instanceof RateLimitError;
+  const rateLimitError = isRateLimited ? error : null;
+
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
   const [email, setEmail] = useState("");
+
   const [showValidation, setShowValidation] = useState(false);
-  const {
-    mutateAsync: resendVerificationEmail,
-    isPending: isSubmitting,
-    isError,
-    error,
-    isSuccess,
-  } = useResendVerificationEmail();
+
+
+
 
   const emailError = !email.trim()
     ? "Email is required"
@@ -37,6 +48,9 @@ export default function ResendEmailVerificationForm() {
         ...(redirect ? { redirect } : {}),
       });
     } catch (submitError) {
+      if (submitError instanceof RateLimitError) {
+        await queryClient.invalidateQueries({ queryKey: ["cooldown"] });
+      }
       console.error("Resending verification email failed:", submitError);
     }
   }
@@ -74,7 +88,14 @@ export default function ResendEmailVerificationForm() {
           )}
         </div>
 
-        {isError && (
+        <CooldownTimer
+          action={rateLimitError?.action ?? RATE_LIMIT_ACTIONS.auth.resendEmailVerification}
+          isRateLimited={isRateLimited}
+          retryAfterExpiresAt={rateLimitError?.retryAfterExpiresAt}
+          onCooldownChange={setCooldown}
+        />
+
+        {isError && !isRateLimited && (
           <p className="auth-field-error" role="alert">
             {error instanceof Error && error.message
               ? error.message
@@ -82,7 +103,7 @@ export default function ResendEmailVerificationForm() {
           </p>
         )}
 
-        <button type="submit" className="auth-submit-button" disabled={isSubmitting}>
+        <button type="submit" className="auth-submit-button" disabled={isSubmitting || cooldown.isActive}>
           <span className="font-mono">
             {isSubmitting ? "Sending email..." : "Resend Verification Email"}
           </span>

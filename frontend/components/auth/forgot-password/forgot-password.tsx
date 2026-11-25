@@ -7,21 +7,29 @@ import { useSearchParams } from "next/navigation";
 import { ArrowRight, LoaderCircle, ArrowLeft, Mail, CheckCircle2 } from "lucide-react";
 import { getRedirectHref } from "@/lib/auth-redirect";
 import { useForgotPassword } from "@/hooks/use-auth";
-
+import CooldownTimer from "@/components/ui/use-cooldown-timer"
+import { RateLimitError } from "@/lib/rateLimit";
+import { RATE_LIMIT_ACTIONS } from "@/constants";
+import {CooldownTimerState} from "@/types/rateLimit"
+import { useQueryClient } from "@tanstack/react-query";
 export default function ForgotPasswordForm() {
+  const query = useQueryClient()
+    
+  const {mutateAsync: forgotPassword,isPending: isSubmitting,isError,error,isSuccess,} = useForgotPassword();
+
+   //* cooldown timer and rate limiter setup
+  const isRateLimited = error instanceof RateLimitError;
+  const rateLimitError = isRateLimited ? error : null;
+  const [cooldown, setCooldown] = useState<CooldownTimerState>({ isActive: false });
+
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
 
   const [email, setEmail] = useState("");
   const [showValidation, setShowValidation] = useState(false);
 
-  const {
-    mutateAsync: forgotPassword,
-    isPending: isSubmitting,
-    isError,
-    error,
-    isSuccess,
-  } = useForgotPassword();
+
+
 
   function getEmailError(): string {
     if (!email.trim()) return "Email is required";
@@ -42,6 +50,9 @@ export default function ForgotPasswordForm() {
         ...(redirect ? { redirect } : {}),
       });
     } catch (err) {
+      if (err instanceof RateLimitError) {
+        query.invalidateQueries({queryKey : ['cooldown']})
+      }
       console.error("Forgot password failed:", err);
     }
   }
@@ -104,7 +115,15 @@ export default function ForgotPasswordForm() {
           )}
         </div>
 
-        {isError && (
+
+        <CooldownTimer
+        action={rateLimitError?.action || RATE_LIMIT_ACTIONS.auth.forgotPasswordVerification }
+        isRateLimited={isRateLimited}
+        retryAfterExpiresAt={rateLimitError?.retryAfterExpiresAt}
+        onCooldownChange={setCooldown}
+        />
+
+        {isError && !isRateLimited && (
           <p className="auth-field-error" role="alert">
             {error instanceof Error && error.message
               ? error.message
@@ -115,7 +134,7 @@ export default function ForgotPasswordForm() {
         <button
           type="submit"
           className="auth-submit-button"
-          disabled={isSubmitting}
+          disabled={isSubmitting || cooldown.isActive}
         >
           <span className="font-mono">
             {isSubmitting ? "Sending link..." : "Send Reset Link"}

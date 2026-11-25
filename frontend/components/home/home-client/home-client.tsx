@@ -1,6 +1,5 @@
 "use client";
 
-import styles from "./home-client.module.css";
 import { useState } from "react";
 import ThumbnailBuilder from "../thumbnail-builder/thumbnail-builder";
 import ThumbnailResults from "../thumbnail-results/thumbnail-results";
@@ -10,10 +9,26 @@ import { useJobThumbnails } from "@/hooks/use-thumbnail";
 import { useQueryClient } from "@tanstack/react-query";
 import {startThumbnailJobStream} from '@/lib/thumbnail-job-stream'
 import { useEffect } from "react";
+import { CooldownTimerState } from "@/types/rateLimit";
+import { RateLimitError } from "@/lib/rateLimit";
 export default function HomeClient() {
 
   const queryClient = useQueryClient()
+
+
+  const {mutateAsync : retryFailedThumbnailsAsync} = useRetryFailedThumbnail()
+  const {mutateAsync : retryAllFailedThumbnailsAsync} = useRetryAllFailedThumbnails()
+
+  const { mutateAsync : deleteThumbnailsAsync} = useDeleteThumbnail()
+  const { mutateAsync : deleteAllThumbnailsAsync} = useDeleteAllThumbnails()
+
+  //* cooldown timer and rate limiter setup
+  // const [cooldown, setCooldown] = useState<CooldownTimerState>({ isActive: false });
+  // const isRateLimited = error instanceof RateLimitError;
+  // const rateLimitError = isRateLimited ? error : null;
   
+
+  //* local states
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [resultStyles, setResultStyles] = useState<StyleId[]>([]);  // ['bold_dramatic' ,'music_concert']
@@ -26,11 +41,6 @@ export default function HomeClient() {
   const {data , isError, error} = useJobThumbnails(jobId ?? "" , isGenerating)
   // console.log("data" , data , "IsError" , isError , "Error" ,error)
 
-  const {mutateAsync : retryFailedThumbnailsAsync} = useRetryFailedThumbnail()
-  const {mutateAsync : retryAllFailedThumbnailsAsync} = useRetryAllFailedThumbnails()
-
-  const { mutateAsync : deleteThumbnailsAsync} = useDeleteThumbnail()
-  const { mutateAsync : deleteAllThumbnailsAsync} = useDeleteAllThumbnails()
  
   // Handle 404 or query errors from invalid jobId
   useEffect(() => {
@@ -55,6 +65,8 @@ export default function HomeClient() {
     }
     setIsGenerating(false);
   }
+
+
 
 
   async function handleDelete(thumbnailId: string, styleId?: string): Promise<void> {
@@ -202,6 +214,8 @@ async function handleRetryAll() : Promise<void> {
 
 
 }                                                          
+
+
 
 
   return (

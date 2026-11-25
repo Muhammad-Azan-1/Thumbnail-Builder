@@ -2,20 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useCooldown } from "@/hooks/use-cooldown";
+import {UseCooldownTimerProps} from '@/types/rateLimit'
 
 
-export type CooldownTimerState = {
-  isActive: boolean;
-  // secondsRemaining: number;
-  // isApplicationCooldownActive: boolean;
-};
-
-type UseCooldownTimerProps = {
-  action: string;
-  isRateLimited: boolean;
-  retryAfterExpiresAt: number | undefined;
-  onCooldownChange: (state: CooldownTimerState) => void;
-};
 
 export default function CooldownTimer({
   action,
@@ -37,23 +26,30 @@ export default function CooldownTimer({
   const [hasObservedCooldownForError, setHasObservedCooldownForError] =
     useState(false);
 
+    //* application cooldown
   // Application cooldowns apply to all actions, so match by scope.
   const applicationCooldown = cooldowns.find(
     (cooldown) => cooldown.scope === "application",
   );
-  // Route cooldowns apply only when their action matches this component's route.
-  const routeCooldown = cooldowns.find(
-    (cooldown) => cooldown.scope === "route" && cooldown.action === action,
-  );
-
   // Convert the selected cooldown expiration timestamps into milliseconds.
   const applicationExpiry = applicationCooldown ? Date.parse(applicationCooldown.expires_at) : 0;
-  const routeExpiry = routeCooldown ? Date.parse(routeCooldown.expires_at) : 0;
-
   // Treat missing or invalid timestamps as no cooldown.
   const validApplicationExpiry = Number.isFinite(applicationExpiry) ? applicationExpiry : 0;
-  const validRouteExpiry = Number.isFinite(routeExpiry) ? routeExpiry : 0;
 
+  //* Route cooldown
+  // Route cooldowns apply only when their action matches this component's route.
+  const actions: readonly string[] = typeof action === "string" ? [action] : action;
+  const routeExpiries = cooldowns
+    .filter(
+      (cooldown) =>
+        cooldown.scope === "route" && actions.includes(cooldown.action),
+    )
+    .map((cooldown) => Date.parse(cooldown.expires_at))
+    .filter(Number.isFinite);
+  const validRouteExpiry = Math.max(0, ...routeExpiries);
+
+
+  
   // Use the response's Retry-After immediately, then keep any later stored expiry.
   const expiresAt = Math.max(validApplicationExpiry, validRouteExpiry, isRateLimited ? retryAfterExpiresAt ?? 0 : 0,
   );
@@ -82,6 +78,7 @@ export default function CooldownTimer({
     // Let the parent update controls, such as disabling a button during cooldown.
     onCooldownChange({
       isActive,
+
     });
   }, [
     isActive,
@@ -126,3 +123,19 @@ export default function CooldownTimer({
     </p>
   );
 }
+
+
+
+// Yes—for route-level cooldowns, the shared backend pieces are in place: the handler records a cooldown in Redis, and the status endpoint returns active records. You can wire the remaining frontend routes yourself; you shouldn’t need to duplicate backend logic.
+
+// For each UI action that can be rate-limited:
+
+// Use its stable action from rateLimitActions.ts. It must match the backend’s method and route path.
+// Pass the action, RateLimitError status, and retryAfterExpiresAt to CooldownTimer.
+// In that action’s 429 handling, invalidate ["cooldown"] so the query fetches the newly saved Redis record.
+// Disable the relevant button while that cooldown is active.
+// Test each route for an immediate countdown, then navigate away and return or reload to confirm it restores from Redis. One caveat: routes limited by IP share cooldowns across devices only when those devices appear to the server from the same IP.
+
+// 10:51 am
+// 10s
+// •

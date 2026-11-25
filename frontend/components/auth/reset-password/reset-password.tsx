@@ -8,16 +8,15 @@ import PasswordInput from "../password-input/password-input";
 import { getRedirectHref } from "@/lib/auth-redirect";
 import { PASSWORD_REQUIREMENTS, getStrength } from "@/lib/auth";
 import { useResetPassword } from "@/hooks/use-auth";
+import CooldownTimer from "@/components/ui/use-cooldown-timer";
+import { RateLimitError } from "@/lib/rateLimit";
+import { RATE_LIMIT_ACTIONS } from "@/constants";
+import { CooldownTimerState } from "@/types/rateLimit";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function ResetPasswordForm() {
-  
-  const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect");
-  const token = searchParams.get("token");
+  const queryClient = useQueryClient();
 
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showValidation, setShowValidation] = useState(false);
 
   const {
     mutateAsync: resetPassword,
@@ -26,6 +25,20 @@ export default function ResetPasswordForm() {
     error,
     isSuccess,
   } = useResetPassword();
+
+  //* cooldown timer and rate limiter setup
+  const [cooldown, setCooldown] = useState<CooldownTimerState>({ isActive: false });
+  const isRateLimited = error instanceof RateLimitError;
+  const rateLimitError = isRateLimited ? error : null;
+
+  
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect");
+  const token = searchParams.get("token");
+
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showValidation, setShowValidation] = useState(false);
 
   const reqResults = PASSWORD_REQUIREMENTS.map((r) => ({
     ...r,
@@ -64,6 +77,9 @@ export default function ResetPasswordForm() {
     try {
       await resetPassword({ token: token!, new_password : password });
     } catch (err) {
+      if (err instanceof RateLimitError) {
+        await queryClient.invalidateQueries({ queryKey: ["cooldown"] });
+      }
       console.error("Reset password failed:", err);
     }
   }
@@ -167,7 +183,14 @@ export default function ResetPasswordForm() {
           <p className="auth-field-error" role="alert">{tokenError}</p>
         )}
 
-        {isError && (
+        <CooldownTimer
+          action={rateLimitError?.action ?? RATE_LIMIT_ACTIONS.auth.resetPassword}
+          isRateLimited={isRateLimited}
+          retryAfterExpiresAt={rateLimitError?.retryAfterExpiresAt}
+          onCooldownChange={setCooldown}
+        />
+
+        {isError && !isRateLimited && (
           <p className="auth-field-error" role="alert">
             {error instanceof Error && error.message
               ? error.message
@@ -178,7 +201,7 @@ export default function ResetPasswordForm() {
         <button
           type="submit"
           className="auth-submit-button"
-          disabled={isSubmitting}
+          disabled={isSubmitting || cooldown.isActive}
         >
           <span className="font-mono">
             {isSubmitting ? "Resetting password..." : "Reset Password"}

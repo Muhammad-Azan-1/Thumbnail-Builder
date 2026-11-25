@@ -10,15 +10,28 @@ import {PASSWORD_REQUIREMENTS , getStrength} from '@/lib/auth'
 import { useSignupUser } from "@/hooks/use-auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getRedirectHref } from "@/lib/auth-redirect";
-
+import CooldownTimer from "@/components/ui/use-cooldown-timer"
+import { RateLimitError } from "@/lib/rateLimit";
+import { RATE_LIMIT_ACTIONS } from "@/constants";
+import {CooldownTimerState} from "@/types/rateLimit"
+import { useQueryClient } from "@tanstack/react-query";
 export default function SignupForm() {
+  const queryClient = useQueryClient();
 
   const {mutateAsync : signupUser , isPending: isSubmitting, isError, error} = useSignupUser()
+
+  //* cooldown timer and rate limiter setup
+  const isRateLimited = error instanceof RateLimitError;
+  const rateLimitError = isRateLimited ? error : null;
+  const [cooldown, setCooldown] = useState<CooldownTimerState>({ isActive: false });
+  
 
   const router = useRouter();
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect')
   const [showValidation, setShowValidation] = useState(false);
+
+  
 
   console.log(isSubmitting , "IS SUBMITTING")
   const [formData, setFormData] = useState<SignupFormData>({
@@ -113,6 +126,9 @@ const isFormValid = Object.keys(errors).length === 0;
       router.push(getRedirectHref("/email-verification", redirect));
 
     } catch (err) {
+      if (err instanceof RateLimitError) {
+        await queryClient.invalidateQueries({ queryKey: ["cooldown"] });
+      }
       console.error("Signup failed:", err);
     } 
   }
@@ -242,7 +258,14 @@ const isFormValid = Object.keys(errors).length === 0;
         </div>
 
 
-        {isError && (
+        <CooldownTimer
+          action={rateLimitError?.action ?? RATE_LIMIT_ACTIONS.auth.register}
+          isRateLimited={isRateLimited}
+          retryAfterExpiresAt={rateLimitError?.retryAfterExpiresAt}
+          onCooldownChange={setCooldown}
+        />
+
+        {isError && !isRateLimited && (
         <p className="auth-field-error" role="alert">
             {error instanceof Error ? error.message : "Signup failed. Please try again."}
          </p>
@@ -252,7 +275,7 @@ const isFormValid = Object.keys(errors).length === 0;
         <button
           type="submit"
           className="auth-submit-button"
-          disabled={isSubmitting}
+          disabled={isSubmitting || cooldown.isActive}
         >
           <span className="sparkle" aria-hidden="true">✦</span>
           <span className="font-mono">

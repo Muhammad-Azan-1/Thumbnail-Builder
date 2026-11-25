@@ -15,7 +15,7 @@ export class RateLimitError extends Error {
         this.retryAfterExpiresAt =
             retryAfterSeconds === undefined
                 ? undefined
-                : Date.now() + retryAfterSeconds * 1000;
+                : Date.now() +  retryAfterSeconds * 1000;
     }
 }
 

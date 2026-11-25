@@ -15,29 +15,11 @@ import { useCreateJob } from "@/hooks/use-thumbnail";
 import type { StyleId, ThumbnailBuilderProps } from "@/types/props";
 import { ThumbnailResponse } from "@/types/thumbnails";
 import { startThumbnailJobStream } from "@/lib/thumbnail-job-stream";
+import { CooldownTimerState } from "@/types/rateLimit";
+import { RateLimitError } from "@/lib/rateLimit";
+import CooldownTimer from "@/components/ui/use-cooldown-timer";
+import { styleOptions ,RATE_LIMIT_ACTIONS} from '@/constants'
 
-const styleOptions = [
-  ["bold_dramatic", "Bold & Dramatic", "#f36b45"],
-  ["clean_minimal", "Clean & Minimal", "#61c6c2"],
-  ["vibrant_energetic", "Vibrant & Energetic", "#f2c94c"],
-  ["neon_gaming", "Neon Gaming", "#9b8cff"],
-  ["tech_review", "Tech Review", "#6b9cff"],
-  ["warm_lifestyle", "Warm Lifestyle", "#efaa63"],
-  ["educational_documentary", "Educational Documentary", "#d4d6d8"],
-  ["finance_business", "Finance & Business", "#70c58a"],
-  ["beauty_glam", "Beauty & Glam", "#ee82aa"],
-  ["fitness_sports", "Fitness & Sports", "#f0785d"],
-  ["comedy_reaction", "Comedy Reaction", "#ffce56"],
-  ["travel_adventure", "Travel & Adventure", "#60c4e8"],
-  ["food_cooking", "Food & Cooking", "#e88758"],
-  ["true_crime_mystery", "True Crime Mystery", "#a65f68"],
-  ["motivational_selfhelp", "Motivational", "#e6bd78"],
-  ["music_concert", "Music & Concert", "#d67cf2"],
-  ["retro_vintage", "Retro Vintage", "#c58358"],
-  ["automotive_cars", "Automotive", "#aeb8c7"],
-  ["scifi_fantasy", "Sci-Fi & Fantasy", "#7b9ef7"],
-  ["news_breaking", "News Breaking", "#ef5656"],
-] as const;
 
 export default function ThumbnailBuilder({
   onJobStarted,
@@ -46,8 +28,18 @@ export default function ThumbnailBuilder({
   isGenerating,
   data,
 }: ThumbnailBuilderProps) {
-  const queryClient = useQueryClient(); //* for adding thumbnails data to the ten stack query cache
+  const queryClient = useQueryClient(); //* used for adding thumbnails data to the ten stack query cache
 
+  //* TanStack Query mutation hooks
+  const { mutateAsync: uploadHeadshotAsync  } = useUploadHeadshot();
+  const { mutateAsync: createJobAsync } = useCreateJob();
+
+  //* cooldown timer and rate limiter setup
+  const [cooldown, setCooldown] = useState<CooldownTimerState>({ isActive: false });
+  // const isRateLimited = error instanceof RateLimitError;
+  // const rateLimitError = isRateLimited ? error : null;
+  
+  //* local states
   const fileInputRef = useRef<HTMLInputElement>(null);
   const stylePickerRef = useRef<HTMLDivElement>(null);
 
@@ -60,6 +52,9 @@ export default function ThumbnailBuilder({
   const [showValidation, setShowValidation] = useState(false);
   const [selectedStyles, setSelectedStyles] = useState<StyleId[]>([]);
 
+  
+  const [rateLimitError , setRateLimitError] = useState<RateLimitError | null>(null)
+  const isRateLimited = rateLimitError instanceof RateLimitError;
   //* on full page refresh or when ever the jobData changes
 
   useEffect(() => {
@@ -81,9 +76,7 @@ export default function ThumbnailBuilder({
     setPreviewUrl(data.headshot_url ?? "");
   }, [data]);
 
-  // TanStack Query mutation hooks
-  const { mutateAsync: uploadHeadshotAsync } = useUploadHeadshot();
-  const { mutateAsync: createJobAsync } = useCreateJob();
+
 
   useEffect(() => {
     function closeStyleMenu(event: MouseEvent) {
@@ -179,6 +172,7 @@ export default function ThumbnailBuilder({
       setShowValidation(true);
       return;
     }
+    setRateLimitError(null)
     onJobStarted(selectedStyles);
     try {
       // 1. Upload headshot using TanStack Query mutation
@@ -222,10 +216,15 @@ export default function ThumbnailBuilder({
 
 
     } catch (err: unknown) {
+      if(err instanceof RateLimitError){
+       queryClient.invalidateQueries({queryKey : ['cooldown']})
+        setRateLimitError(err)
+      }
       onFailedOrSucess(
         err instanceof Error ? err.message : "Generation failed",
       );
     }
+
   }
 
   return (
@@ -421,9 +420,10 @@ export default function ThumbnailBuilder({
         aria-disabled={
           !file || !prompt.trim() || selectedStyles.length === 0 || isGenerating
         }
-        disabled={isGenerating}
+        disabled={isGenerating || cooldown.isActive}
         onClick={handleGenerate}
       >
+        {/* || isRateLimited */}
         <span className="sparkle " aria-hidden="true">
           ✦
         </span>
@@ -441,6 +441,15 @@ export default function ThumbnailBuilder({
         )}
       </button>
 
+      <CooldownTimer
+      action={[
+        RATE_LIMIT_ACTIONS.thumbnails.uploadHeadshot,
+        RATE_LIMIT_ACTIONS.thumbnails.createJob,
+      ]}
+      isRateLimited={isRateLimited}
+      retryAfterExpiresAt={rateLimitError?.retryAfterExpiresAt}
+      onCooldownChange={setCooldown}
+      />
       
     </section>
   );

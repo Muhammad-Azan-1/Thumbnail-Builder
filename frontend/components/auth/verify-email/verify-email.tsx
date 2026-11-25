@@ -8,12 +8,25 @@ import styles from "./verify-email.module.css";
 import { getRedirectHref } from "@/lib/auth-redirect";
 import { useEmailVerification } from "@/hooks/use-auth";
 import AuthLinkLoader from "../loader/loader";
+import CooldownTimer from "@/components/ui/use-cooldown-timer";
+import { RateLimitError } from "@/lib/rateLimit";
+import { RATE_LIMIT_ACTIONS } from "@/constants";
+import { CooldownTimerState } from "@/types/rateLimit";
+import { useQueryClient } from "@tanstack/react-query";
 
 const CODE_LENGTH = 6;
 
 export default function VerifyEmailForm() {
+  const queryClient = useQueryClient();
 
   const  {mutateAsync : verifyEmail , isPending: isSubmitting, isError, error , isSuccess } = useEmailVerification()
+
+  //* cooldown timer and rate limiter setup
+  const isRateLimited = error instanceof RateLimitError;
+  const rateLimitError = isRateLimited ? error : null;
+  const [cooldown, setCooldown] = useState<CooldownTimerState>({ isActive: false });
+
+
 
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
@@ -25,12 +38,16 @@ export default function VerifyEmailForm() {
   const submittedLinkToken = useRef<string | null>(null);
 
 
+
   // Verify email links automatically; focus the OTP input only for manual verification.
   useEffect(() => {
     if (token) {
       if (submittedLinkToken.current !== token) {
         submittedLinkToken.current = token;
         void verifyEmail({ verification_token: token }).catch((err: unknown) => {
+          if (err instanceof RateLimitError) {
+            void queryClient.invalidateQueries({ queryKey: ["cooldown"] });
+          }
           console.error("Email link verification failed:", err);
         });
       }
@@ -38,7 +55,7 @@ export default function VerifyEmailForm() {
     }
 
     inputRefs.current[0]?.focus();
-  }, [token, verifyEmail]);
+  }, [token, verifyEmail, queryClient]);
 
   function handleDigitChange(index: number, value: string) {
     // Only allow single digits
@@ -97,6 +114,9 @@ export default function VerifyEmailForm() {
       console.log("Email verification successful:", result);
 
     } catch (err) {
+      if (err instanceof RateLimitError) {
+        await queryClient.invalidateQueries({ queryKey: ["cooldown"] });
+      }
       console.error("Verification failed:", err);
     }
   }
@@ -171,7 +191,7 @@ export default function VerifyEmailForm() {
               {codeError}
             </p>
           )}
-          {isError && (
+          {isError && !isRateLimited && (
             <p className="auth-field-error" role="alert" style={{ textAlign: "center", marginTop: 10 }}>
               {error instanceof Error && error.message
                 ? error.message
@@ -180,10 +200,17 @@ export default function VerifyEmailForm() {
           )}
         </div>
 
+        <CooldownTimer
+          action={rateLimitError?.action ?? RATE_LIMIT_ACTIONS.auth.verifyEmail}
+          isRateLimited={isRateLimited}
+          retryAfterExpiresAt={rateLimitError?.retryAfterExpiresAt}
+          onCooldownChange={setCooldown}
+        />
+
         <button
           type="submit"
           className="auth-submit-button"
-          disabled={isSubmitting}
+          disabled={isSubmitting || cooldown.isActive}
         >
           <span className="font-mono">
             {isSubmitting ? "Verifying..." : "Verify Email"}

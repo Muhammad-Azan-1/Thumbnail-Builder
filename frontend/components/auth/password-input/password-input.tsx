@@ -4,8 +4,7 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import styles from "./password-input.module.css";
 import type { PasswordInputProps } from "@/types/auth";
-
-
+import  CooldownTimer from "@/components/ui/use-cooldown-timer";
 
 export default function PasswordInput({
   id,

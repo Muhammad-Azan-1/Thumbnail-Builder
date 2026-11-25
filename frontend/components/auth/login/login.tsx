@@ -11,7 +11,7 @@ import styles from "./login.module.css";
 import { LoginErrors, LoginFormData } from "@/types/auth";
 import { useLoginUser } from "@/hooks/use-auth";
 import { getRedirectHref, getSafeRedirectPath } from "@/lib/auth-redirect";
-import { RATE_LIMIT_ACTIONS } from "@/lib/rateLimitActions";
+import { RATE_LIMIT_ACTIONS } from "@/constants";
 import {useDispatch} from 'react-redux'
 import {AppDispatch } from '@/redux/store/store'
 import {login} from '@/redux/reducers/authReducer'
@@ -25,22 +25,25 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { RateLimitError  } from "@/lib/rateLimit";
-import CooldownTimer, {
-  type CooldownTimerState,
-} from "@/components/ui/use-cooldown-timer";
+import {CooldownTimerState} from "@/types/rateLimit"
+import CooldownTimer from "@/components/ui/use-cooldown-timer"
 export default function LoginForm() {
-  console.log("login rendered")
+
+  const queryClient = useQueryClient();
+
+  const { mutateAsync: loginUser, isPending: isSubmitting, isError, error} = useLoginUser();
+
+  //* cooldown timer and rate limiter setup
+  const isRateLimited = error instanceof RateLimitError;
+  const rateLimitError = isRateLimited ? error : null;
+  const [cooldown, setCooldown] = useState<CooldownTimerState>({isActive: false});
+
+
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
   const reason = searchParams.get("reason")
-
-  const { mutateAsync: loginUser, isPending: isSubmitting, isError, error} = useLoginUser();
-  const isRateLimited = error instanceof RateLimitError;
-  const rateLimitError = isRateLimited ? error : null;
-
-  const queryClient = useQueryClient();
-  const [cooldown, setCooldown] = useState<CooldownTimerState>({isActive: false});
 
 
   const [formData, setFormData] = useState<LoginFormData>({

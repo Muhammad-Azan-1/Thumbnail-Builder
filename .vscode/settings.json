@@ -3,5 +3,6 @@
     "Codegeex.Chat.fontSize": 15,
     "Codegeex.Chat.LanguagePreference": "English",
     "Codegeex.Comment.LanguagePreference": "English",
-    "Codegeex.CommitMessage.LanguagePreference": "English"
+    "Codegeex.CommitMessage.LanguagePreference": "English",
+    "Codegeex.RepoIndex": true
 }
