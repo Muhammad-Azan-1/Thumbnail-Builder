@@ -2,12 +2,20 @@
 import {RateLimitScope} from '@/types/rateLimit'
 
 export class RateLimitError extends Error {
+    public readonly retryAfterExpiresAt: number | undefined;
+
     constructor(
+        public readonly action: string | undefined,
+        public readonly coolDownStatus : string | undefined, 
         public readonly retryAfterSeconds: number | undefined, //* public readonly  parameters are stored as property for the current instance automatically
         public readonly scope: RateLimitScope,
     ) {
         super("Too many requests. Please wait before trying again.");
         this.name = "RateLimitError";
+        this.retryAfterExpiresAt =
+            retryAfterSeconds === undefined
+                ? undefined
+                : Date.now() + retryAfterSeconds * 1000;
     }
 }
 
@@ -43,10 +51,15 @@ function parseRetryAfter(
 
 export function createRateLimitError(response: Response): RateLimitError {
     const scopeHeader = response.headers.get("X-RateLimit-Scope");
+    const actionHeader = response.headers.get("X-RateLimit-Action")
+    const coolDownStatus = response.headers.get("X-Cooldown-Status")
+
     const scope: RateLimitScope =
         scopeHeader === "application" ? "application" : "route";
 
     return new RateLimitError(
+        actionHeader || undefined,
+        coolDownStatus || undefined,
         parseRetryAfter(
             response.headers.get("Retry-After"),
             response.headers.get("X-RateLimit-Reset"),

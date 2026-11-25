@@ -42,7 +42,6 @@ def get_rate_limit_key(request: Request) -> str:
 limiter = Limiter(
     key_func=get_rate_limit_key,
     default_limits=["100/minute"],
-    application_limits=['200/minute'],
     headers_enabled=True,
     storage_uri=IP_MEMORY,  # memory locally, Redis in production
 )
@@ -57,7 +56,7 @@ limiter = Limiter(
     #? default_limits=["50/minute"]
 
 #* 2) application_limits : A shared limit across all routes, per key returned by get_rate_limit_key (account for valid tokens, otherwise IP).
-   #? application_limits=["100/minute"]
+   #? application_limits=["100/minute"] #  it does not apply to the routes which have @limiter.limit("5/minute") decorator for them we need to configure it manually 
 
 #* 3) Route-level decorator : A limit for one specific route:
     #? @limiter.limit("5/minute")

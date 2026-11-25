@@ -25,6 +25,7 @@ class RateLimitCooldownStore:
 
     #* Check that Redis is reachable, or warn when it's not.
     async def verify_connection(self) -> None:
+        logger.info(f"verify connection function called")
         if self._redis is None:
             logger.warning("REDIS_URL is unset; cooldowns are unavailable and rate limits are worker-local")
             return
@@ -33,6 +34,7 @@ class RateLimitCooldownStore:
 
     #* Close the Redis connection when the FastAPI application shuts down.
     async def close(self) -> None:
+        logger.info(f"close function called")
         if self._redis is not None:
             await self._redis.aclose()
 
@@ -42,6 +44,7 @@ class RateLimitCooldownStore:
     # store the record for that user who just hit rate limit error unless and until the
     # record expires , once the record expire then the user can hit the api again
     async def record(self, identity: str, scope: str, action: str, expires_at: datetime ) -> None:
+        logger.info(f"record function called")
         redis = self._require_redis()
         expires_at = expires_at.astimezone(timezone.utc)
 
@@ -63,6 +66,7 @@ class RateLimitCooldownStore:
     # basically this function will return the cooldown record for the user who hit rate limit error
     # for the supplied identities
     async def get_active(self, identities: list[str]) -> list[dict[str, str]]:
+        logger.info(f"get_active function called")
         redis = self._require_redis()
         found: dict[tuple[str, str], dict[str, str]] = {}
         now = datetime.now(timezone.utc)
@@ -95,6 +99,7 @@ class RateLimitCooldownStore:
 
     #* Limit how often one IP can request to check cooldown-status from redis within a 60-second window.
     async def check_status_rate_limit(self, client_ip: str) -> int | None:
+        logger.info("check_status_rate_limit function called")
         redis = self._require_redis()
         key = f"{_PREFIX}:status:{_hash(client_ip)}"
         count = await redis.incr(key) # It increments that IP’s request counter in redis store
@@ -106,6 +111,7 @@ class RateLimitCooldownStore:
         return None
 
     def _require_redis(self) -> Redis:
+        logger.info("require redis function called")
         # Return the Redis client or clearly report that cooldown storage is unavailable.
         if self._redis is None:
             raise CooldownStoreUnavailable("REDIS_URL is not configured")

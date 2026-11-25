@@ -35,7 +35,7 @@ async def register_user(request : Request ,user_data : UserRegistrationRequest ,
 
 
 @router.post("/verify-email" , response_model=ApiResponse)
-@limiter.limit("3/minute", key_func=get_remote_address)
+@limiter.limit("1/minute", key_func=get_remote_address)
 async def verify_email(request: Request, verification_data: EmailVerificationRequest, session: AsyncSession = Depends(get_async_session)):
     """
     Verify a user's email using the provided verification token and OTP.
@@ -50,7 +50,7 @@ async def verify_email(request: Request, verification_data: EmailVerificationReq
 
 
 @router.post("/login" , response_model=ApiResponse[LoginUserResponse])
-@limiter.limit("6/minute", key_func=get_remote_address)
+@limiter.limit("1/minute", key_func=get_remote_address)
 async def login(request: Request, user_data : UserLoginRequest ,  response: Response , session : AsyncSession = Depends(get_async_session)):
 
     result = await AuthService.login_user(user_data , session)

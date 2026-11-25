@@ -135,7 +135,7 @@ async function handleRetry(styleId: string) :  Promise<void>  {
         // Optimistically mark as generating so skeleton shows up                                                                                                            
         queryClient.setQueryData(["thumbnails", jobId], (old: any) => ({                                                                                                     
           ...old,                                                                                                                                                            
-          thumbnails: (old?.thumbnails || []).map((t: any) =>                                                                                                                
+          thumbnails : (old?.thumbnails || []).map((t: any) =>                                                                                                                
             t.id === failed.id ? { ...t, status: "generating", error_message: undefined } : t  // on retry mark the failed thumbnail as generated                                                                               
           ),                                                                                                                                                                 
         }));                                                                                                                                                                 

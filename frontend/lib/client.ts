@@ -53,7 +53,8 @@ export async function FETCH_API_METHOD<T>(basePath: string, endpoint: string, op
         }
 
 
-        if (response.status === 429) {
+        if (!response.ok && response.status === 429) {
+            console.log("429 error received")
             throw createRateLimitError(response);
         }
 

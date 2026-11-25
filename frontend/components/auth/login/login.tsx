@@ -4,12 +4,14 @@ import { useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, LoaderCircle } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import GoogleAuthButton from "../google-auth/google-auth";
 import PasswordInput from "../password-input/password-input";
 import styles from "./login.module.css";
 import { LoginErrors, LoginFormData } from "@/types/auth";
 import { useLoginUser } from "@/hooks/use-auth";
 import { getRedirectHref, getSafeRedirectPath } from "@/lib/auth-redirect";
+import { RATE_LIMIT_ACTIONS } from "@/lib/rateLimitActions";
 import {useDispatch} from 'react-redux'
 import {AppDispatch } from '@/redux/store/store'
 import {login} from '@/redux/reducers/authReducer'
@@ -22,15 +24,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
+import { RateLimitError  } from "@/lib/rateLimit";
+import CooldownTimer, {
+  type CooldownTimerState,
+} from "@/components/ui/use-cooldown-timer";
 export default function LoginForm() {
-
+  console.log("login rendered")
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
   const reason = searchParams.get("reason")
 
   const { mutateAsync: loginUser, isPending: isSubmitting, isError, error} = useLoginUser();
+  const isRateLimited = error instanceof RateLimitError;
+  const rateLimitError = isRateLimited ? error : null;
+
+  const queryClient = useQueryClient();
+  const [cooldown, setCooldown] = useState<CooldownTimerState>({isActive: false});
+
 
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
@@ -38,7 +49,6 @@ export default function LoginForm() {
     rememberMe: false,
   });
   const [showValidation, setShowValidation] = useState(false);
-
   const dispatch = useDispatch<AppDispatch>();
 
   function dismissSessionExpiredDialog() {
@@ -92,7 +102,11 @@ export default function LoginForm() {
 
       router.replace(getSafeRedirectPath(redirect) ?? "/");
     } catch (err) {
-      console.error("Login failed:", err);
+      if (err instanceof RateLimitError) {
+        await queryClient.invalidateQueries({ queryKey: ["cooldown"] });
+      } else {
+        console.error("Login failed:", err);
+      }
     }
   }
   //* router.replace(...) navigates there without a full page reload and 
@@ -170,7 +184,7 @@ export default function LoginForm() {
         <button
           type="submit"
           className="auth-submit-button"
-          disabled={isSubmitting}
+          disabled={isSubmitting || cooldown.isActive}
         >
           <span className="font-mono">
             {isSubmitting ? "Signing in..." : "Sign In"}
@@ -182,7 +196,16 @@ export default function LoginForm() {
           )}
         </button>
 
-        {isError && (
+        
+       <CooldownTimer
+          action={rateLimitError?.action ?? RATE_LIMIT_ACTIONS.auth.login}
+          isRateLimited={isRateLimited}
+          retryAfterExpiresAt={rateLimitError?.retryAfterExpiresAt}
+          onCooldownChange={setCooldown}
+        />
+
+
+        {isError && !isRateLimited && (
           <p className="auth-field-error" role="alert">
             {error instanceof Error ? error.message : "Login failed. Please try again."}
           </p>
@@ -195,7 +218,10 @@ export default function LoginForm() {
       </div>
 
 
-        <GoogleAuthButton disabled={isSubmitting } label="Login with google" />
+        <GoogleAuthButton
+          disabled={isSubmitting}
+          label="Login with google"
+        />
 
     
 

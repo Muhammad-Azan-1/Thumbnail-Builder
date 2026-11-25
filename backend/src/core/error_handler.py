@@ -8,7 +8,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from redis.exceptions import RedisError
 
-from .cooldowns import CooldownStoreUnavailable, cooldown_store
+from .cooldowns import CooldownStoreUnavailable, rate_limiter_cooldown_store
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,19 @@ logger = logging.getLogger(__name__)
 # exc: the limit object and 429 exception details
 
 async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
-    """Include the violated limit's scope so the frontend can cooldown the right actions."""
+    """Add rate-limit details to the 429 response and record the cooldown.
+
+    Scope says whether the limit is application-wide or route-specific.
+    Action identifies the exact cooldown: "application" or "<METHOD> <route path>".
+    The frontend uses both to determine which cooldown applies.
+    """
+
+    logger.exception(
+        f"handled exception on {request.method} {request.url.path}"
+    )
+    logger.exception(exc)
+
+
     response = _rate_limit_exceeded_handler(request, exc)
     scope = "application" if exc.limit.scope == "global" else "route"
     response.headers["X-RateLimit-Scope"] = scope
@@ -35,13 +47,15 @@ async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
         return response
     expires_at = datetime.now(timezone.utc) + timedelta(seconds=max(0, retry_seconds))
 
-    identity = exc.limit.key_func(request)
+    identity = exc.limit.key_func(request) 
     route = request.scope.get("route")
     route_path = getattr(route, "path", request.url.path)
     action = "application" if scope == "application" else f"{request.method} {route_path}"
+    response.headers["X-RateLimit-Action"] = action
 
+    logger.info(f"Storing cooldown record for {identity} on {action} expires at {expires_at}")
     try:
-        await cooldown_store.record(
+        await  rate_limiter_cooldown_store.record(
             identity=identity,
             scope=scope,
             action=action,
@@ -81,7 +95,7 @@ async def application_exception_handler(request: Request, exc: ApplicationExcept
             "errors": exc.errors,
         },
     )
-    
+
     if isinstance(exc, CooldownStatusRateLimitException):
         response.headers["Retry-After"] = str(exc.retry_after)
     return response

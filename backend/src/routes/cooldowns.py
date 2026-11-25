@@ -21,6 +21,7 @@ router = APIRouter(prefix='/cooldowntimer' ,  tags=["Rate limits"])
 @router.get("/cooldowns", response_model=ApiResponse[list[CooldownStatus]])
 @limiter.exempt #* this tells SlowAPI not to apply its normal rate limits to get_cooldowns()—including the configured default or application limits.
 async def get_cooldowns(request: Request) -> ApiResponse[list[CooldownStatus]]:
+    logger.info("/cooldowns route hit")
     client_ip = get_remote_address(request)
     identities = [get_rate_limit_key(request), client_ip]
 
