@@ -41,7 +41,7 @@ interface FailedPayload{
 interface JobCompletedPayload {
 job_id : string,
 status : string,
-job_error : string
+job_error : string | null
 
 
 }

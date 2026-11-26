@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 @router.post("/register" , response_model=ApiResponse)
 @limiter.limit("5/hour" , key_func=get_remote_address)
-async def register_user(request : Request ,user_data : UserRegistrationRequest , session : AsyncSession = Depends(get_async_session)):
+async def register_user(request : Request, response: Response, user_data : UserRegistrationRequest , session : AsyncSession = Depends(get_async_session)):
     """
     Register a new user.
     """
@@ -36,7 +36,7 @@ async def register_user(request : Request ,user_data : UserRegistrationRequest ,
 
 @router.post("/verify-email" , response_model=ApiResponse)
 @limiter.limit("1/minute", key_func=get_remote_address)
-async def verify_email(request: Request, verification_data: EmailVerificationRequest, session: AsyncSession = Depends(get_async_session)):
+async def verify_email(request: Request, response: Response, verification_data: EmailVerificationRequest, session: AsyncSession = Depends(get_async_session)):
     """
     Verify a user's email using the provided verification token and OTP.
     """
@@ -50,7 +50,7 @@ async def verify_email(request: Request, verification_data: EmailVerificationReq
 
 
 @router.post("/login" , response_model=ApiResponse[LoginUserResponse])
-@limiter.limit("1/minute", key_func=get_remote_address)
+@limiter.limit("10/minute", key_func=get_remote_address)
 async def login(request: Request, user_data : UserLoginRequest ,  response: Response , session : AsyncSession = Depends(get_async_session)):
 
     result = await AuthService.login_user(user_data , session)
@@ -82,7 +82,7 @@ async def login(request: Request, user_data : UserLoginRequest ,  response: Resp
 
 @router.post('/resend-email-verification' ,  response_model=ApiResponse)
 @limiter.limit("3/hour", key_func=get_remote_address)
-async def resend_email_verification(request: Request, request_data: ResendEmailVerificationRequest, session: AsyncSession = Depends(get_async_session)):
+async def resend_email_verification(request: Request, response: Response, request_data: ResendEmailVerificationRequest, session: AsyncSession = Depends(get_async_session)):
 
     result = await AuthService.resend_email_verification(request_data.email , request_data.redirect, session)
 
@@ -166,7 +166,7 @@ async def refresh_access_token(request: Request, response : Response , refresh_t
     
 @router.post('/forgot-password-verfication' , response_model=ApiResponse)
 @limiter.limit("3/hour",key_func=get_remote_address)
-async def forgot_password_verfication(request: Request, request_data: ResendEmailVerificationRequest , session : AsyncSession = Depends(get_async_session)):
+async def forgot_password_verfication(request: Request, response: Response, request_data: ResendEmailVerificationRequest , session : AsyncSession = Depends(get_async_session)):
  
     result = await AuthService.forgot_password_verfication(request_data.email , request_data.redirect, session)
     
@@ -177,7 +177,7 @@ async def forgot_password_verfication(request: Request, request_data: ResendEmai
 
 @router.post("/reset-password" , response_model=ApiResponse)
 @limiter.limit("3/minute",key_func=get_remote_address)
-async def reset_password(request: Request, request_data : ResetPasswordRequest, session : AsyncSession = Depends(get_async_session)):
+async def reset_password(request: Request, response: Response, request_data : ResetPasswordRequest, session : AsyncSession = Depends(get_async_session)):
      result  = await AuthService.reset_password(request_data.token , request_data.new_password , session)
      return ApiResponse(
         message=result

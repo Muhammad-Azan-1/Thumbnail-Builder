@@ -9,11 +9,53 @@ import { useJobThumbnails } from "@/hooks/use-thumbnail";
 import { useQueryClient } from "@tanstack/react-query";
 import {startThumbnailJobStream} from '@/lib/thumbnail-job-stream'
 import { useEffect } from "react";
-import { CooldownTimerState } from "@/types/rateLimit";
 import { RateLimitError } from "@/lib/rateLimit";
+import type { ThumbnailCooldownKey, ThumbnailRateLimitErrors } from "@/types/props";
+import { useThumbnailCooldowns } from "@/components/ui/use-thumbnail-cooldowns";
+import ThumbnailDeleteDialog from "../thumbnail-delete-dialog/thumbnail-delete-dialog";
+
+type PendingDelete =
+  | { kind: "single"; thumbnailId: string; styleId?: string; styleName?: string }
+  | { kind: "all"; thumbnailIds: string[] };
+
 export default function HomeClient() {
 
   const queryClient = useQueryClient()
+
+
+
+  //* local states
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [resultStyles, setResultStyles] = useState<StyleId[]>([]); 
+  const [jobId, setJobId] = useState<string | null>(() => typeof window !== "undefined" ? sessionStorage.getItem("jobId"): null);
+  const [generationError, setGenerationError] = useState<string>('')
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [deleteError, setDeleteError] = useState("");
+
+  
+  const [rateLimitErrors, setRateLimitErrors] = useState<ThumbnailRateLimitErrors>({});
+  const { cooldowns, showMessage: showCooldownMessage, secondsRemaining: cooldownSecondsRemaining } = useThumbnailCooldowns(rateLimitErrors);
+
+  //* Ten stack query hooks
+  
+  const {data , isError, error} = useJobThumbnails(jobId ?? "" , isGenerating)
+  const isJobInProgress = isGenerating || Boolean(data?.thumbnails.some(
+    (thumbnail) => thumbnail.status === "pending" || thumbnail.status === "generating",
+  ));
+
+  function clearRateLimitError(key: ThumbnailCooldownKey) {
+    setRateLimitErrors((current) => ({ ...current, [key]: undefined }));
+  }
+
+  function captureRateLimit(error: unknown, key: ThumbnailCooldownKey): boolean {
+    if (!(error instanceof RateLimitError)) return false;
+
+    setRateLimitErrors((current) => ({ ...current, [key]: error }));
+    void queryClient.invalidateQueries({ queryKey: ["cooldown"] });
+    return true;
+  }
 
 
   const {mutateAsync : retryFailedThumbnailsAsync} = useRetryFailedThumbnail()
@@ -22,24 +64,6 @@ export default function HomeClient() {
   const { mutateAsync : deleteThumbnailsAsync} = useDeleteThumbnail()
   const { mutateAsync : deleteAllThumbnailsAsync} = useDeleteAllThumbnails()
 
-  //* cooldown timer and rate limiter setup
-  // const [cooldown, setCooldown] = useState<CooldownTimerState>({ isActive: false });
-  // const isRateLimited = error instanceof RateLimitError;
-  // const rateLimitError = isRateLimited ? error : null;
-  
-
-  //* local states
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [resultStyles, setResultStyles] = useState<StyleId[]>([]);  // ['bold_dramatic' ,'music_concert']
-  const [jobId, setJobId] = useState<string | null>(() => typeof window !== "undefined" ? sessionStorage.getItem("jobId"): null);
-  // const [jobId, setJobId] = useState<string | null >('133d56d2-cc00-4b94-9c15-ab2599af9ebf');
-  const [generationError, setGenerationError] = useState("")
-
-
-  // Ten stack query hooks
-  const {data , isError, error} = useJobThumbnails(jobId ?? "" , isGenerating)
-  // console.log("data" , data , "IsError" , isError , "Error" ,error)
 
  
   // Handle 404 or query errors from invalid jobId
@@ -57,9 +81,10 @@ export default function HomeClient() {
     setIsGenerating(true);
     setResultStyles(styles);
     setGenerationError("");
+    setJobId(null)
   }
 
-  function handleFailerAndSucess(errorMessage?: string)  {
+  function handleFailerAndSucess(errorMessage?: string | null)  {
     if (errorMessage ){
     setGenerationError(errorMessage);
     }
@@ -67,92 +92,98 @@ export default function HomeClient() {
   }
 
 
-
-
-  async function handleDelete(thumbnailId: string, styleId?: string): Promise<void> {
-    if (!thumbnailId || isGenerating || isDeleting) return;
-
-    try {
-      setIsDeleting(true);
-      setGenerationError("");
-
-      await deleteThumbnailsAsync(thumbnailId);
-
-      // Optimistically remove from TanStack Query cache
-      queryClient.setQueryData(["thumbnails", jobId], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          thumbnails: (old.thumbnails || []).filter((t: any) => t.id !== thumbnailId),
-        };
-      });
-
-      // Remove styleId from resultStyles if tracked
-      if (styleId) {
-        setResultStyles((current) => current.filter((s) => s !== styleId));
-      }
-
-      // If no thumbnails left, clear job session & reset state
-      const current = queryClient.getQueryData<any>(["thumbnails", jobId]);
-      if (!current?.thumbnails || current.thumbnails.length === 0) {
-        sessionStorage.removeItem("jobId");
-        setJobId(null);
-        setResultStyles([]);
-      }
-    } catch (error) {
-      setGenerationError(error instanceof Error ? error.message : "Delete failed");
-    } finally {
-      setIsDeleting(false);
-    }
+  //* delete handlers
+  function handleDelete(thumbnailId: string, styleId?: string): void {
+    if (!thumbnailId || !jobId || isJobInProgress || isDeleting || cooldowns.deleteSingle.isActive) return;
+    setDeleteError("");
+    setPendingDelete({ kind: "single", thumbnailId, styleId, styleName: styleId });
   }
 
-  async function handleDeleteAll(): Promise<void> {
-    if (!jobId || !data?.thumbnails?.length || isGenerating || isDeleting) return;
+  function handleDeleteAll(): void {
+    if (!jobId || !data?.thumbnails?.length || isJobInProgress || isDeleting || cooldowns.deleteAll.isActive) return;
 
     const thumbnailIds = data.thumbnails.map((t) => t.id);
     if (thumbnailIds.length === 0) return;
 
+    setDeleteError("");
+    setPendingDelete({ kind: "all", thumbnailIds });
+  }
+
+  async function confirmDelete(): Promise<void> {
+    const cooldownKey = pendingDelete?.kind === "all" ? "deleteAll" : "deleteSingle";
+    if (!pendingDelete || !jobId || isDeleting || cooldowns[cooldownKey].isActive) return;
+
+    setIsDeleting(true);
+    setDeleteError("");
+    clearRateLimitError(cooldownKey);
     try {
-      setIsDeleting(true);
-      setGenerationError("");
+      if (pendingDelete.kind === "single") {
+        await deleteThumbnailsAsync(pendingDelete.thumbnailId);
 
-      await deleteAllThumbnailsAsync(thumbnailIds);
+        queryClient.setQueryData(["thumbnails", jobId], (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            thumbnails: (old.thumbnails || []).filter(
+              (thumbnail: any) => thumbnail.id !== pendingDelete.thumbnailId,
+            ),
+          };
+        });
 
-      // Clear cache and reset state
-      // queryClient.setQueryData(["thumbnails", jobId], (old: any) => ({
-      //   ...old,
-      //   thumbnails: [],
-      // }));
+        if (pendingDelete.styleId) {
+          setResultStyles((current) =>
+            current.filter((style) => style !== pendingDelete.styleId),
+          );
+        }
 
-      queryClient.removeQueries({ queryKey: ["thumbnails", jobId]  });
+        const current = queryClient.getQueryData<any>(["thumbnails", jobId]);
+        if (!current?.thumbnails?.length) {
+          sessionStorage.removeItem("jobId");
+          setJobId(null);
+          setResultStyles([]);
+        }
 
-      sessionStorage.removeItem("jobId");
-      setJobId(null);
-      setResultStyles([]);
+
+      } else {
+
+        await deleteAllThumbnailsAsync(pendingDelete.thumbnailIds);
+        queryClient.removeQueries({ queryKey: ["thumbnails", jobId] });
+        sessionStorage.removeItem("jobId");
+        setJobId(null);
+        setResultStyles([]);
+      }
+
+      setPendingDelete(null);
     } catch (error) {
-      setGenerationError(error instanceof Error ? error.message : "Delete all failed");
+      captureRateLimit(error, cooldownKey);
+      setDeleteError(error instanceof Error ? error.message : "Delete failed");
     } finally {
       setIsDeleting(false);
     }
   }
 
 
+//* retry handlers
 async function handleRetry(styleId: string) :  Promise<void>  {                                                                                                                            
       const failed = data?.failed?.find((t) => t.style_name === styleId);                                                                                                    
-      if (!failed || !jobId) return;                                                                                                                                         
+      if (!failed || !jobId || cooldowns.retrySingle.isActive) return;
                                                                                                                                                                              
       try {                                                                                                                                                                  
+        clearRateLimitError("retrySingle");
+        setGenerationError("");
         setIsGenerating(true);                                                                                                                                               
                                                                                                                                                                              
-        // Optimistically mark as generating so skeleton shows up                                                                                                            
-        queryClient.setQueryData(["thumbnails", jobId], (old: any) => ({                                                                                                     
-          ...old,                                                                                                                                                            
-          thumbnails : (old?.thumbnails || []).map((t: any) =>                                                                                                                
-            t.id === failed.id ? { ...t, status: "generating", error_message: undefined } : t  // on retry mark the failed thumbnail as generated                                                                               
-          ),                                                                                                                                                                 
-        }));                                                                                                                                                                 
-                                                                                                                                                                             
         const response = await retryFailedThumbnailsAsync(failed.id);                                                                                                        
+
+        // Mark the thumbnail as generating only after the API accepts the retry.
+        queryClient.setQueryData(["thumbnails", jobId], (old: any) => ({
+          ...old,
+          thumbnails: (old?.thumbnails || []).map((thumbnail: any) =>
+            thumbnail.job_id === jobId && thumbnail.id === failed.id
+              ? { ...thumbnail, status: "generating", error_message: undefined }
+              : thumbnail,
+          ),
+        }));
                                                                                                                                                                              
         startThumbnailJobStream({                                                                                                                                            
           jobId,                                                                                                                                   
@@ -169,35 +200,43 @@ async function handleRetry(styleId: string) :  Promise<void>  {
         });      
         
         
-      } catch (error) {                                                                                                                                                      
-        handleFailerAndSucess(error instanceof Error ? error.message : "Retry failed");                                                                                      
+      } catch (error) {   
+        if (captureRateLimit(error, "retrySingle")) {
+          setIsGenerating(false);
+        } else {
+          handleFailerAndSucess(error instanceof Error ? error.message : "Retry failed");
+        }
       }                                                                                                                                                                      
     }         
 
 
 async function handleRetryAll() : Promise<void> {
     const failed = data?.failed
-    if(!failed  || !(failed.length > 1) || !jobId ){
+    if(!failed  || !(failed.length > 0) || !jobId || cooldowns.retryAll.isActive ){
       return
     }
     try {
+    clearRateLimitError("retryAll");
+    setGenerationError("");
     setIsGenerating(true)
 
-    // Optimistically mark as generating so skeleton shows up                                                                                                            
-    queryClient.setQueryData(["thumbnails", jobId], (old: any) => ({                                                                                                     
-          ...old,                                                                                                                                                            
-          thumbnails : (old?.thumbnails || []).map((t: any) =>                                                                                                                
-            t.job_id == jobId && t.status == 'failed' ? { ...t, status: "generating", error_message: undefined } : t  // on retry mark the failed thumbnail as generated                                                                               
-          ),                                                                                                                                                                 
-        }));                                                                                                                                                                 
-                       
     const response = await retryAllFailedThumbnailsAsync(jobId)
+
+    // Mark failed thumbnails as generating only after the API accepts the retry.
+    queryClient.setQueryData(["thumbnails", jobId], (old: any) => ({
+      ...old,
+      thumbnails: (old?.thumbnails || []).map((thumbnail: any) =>
+        thumbnail.job_id === jobId && thumbnail.status === "failed"
+          ? { ...thumbnail, status: "generating", error_message: undefined }
+          : thumbnail,
+      ),
+    }));
 
     startThumbnailJobStream({
       jobId,
       queryClient,
       onComplete : (res) =>{
-        if (data.error_message){
+        if (res.status == 'failed'){
            handleFailerAndSucess(res.job_error );           
         }else{
           setIsGenerating(false)
@@ -209,7 +248,11 @@ async function handleRetryAll() : Promise<void> {
     })
 
     } catch (error) {
+       if (captureRateLimit(error, "retryAll")) {
+         setIsGenerating(false);
+       } else {
         handleFailerAndSucess(error instanceof Error  ? error.message : "Retry failed")
+       }
     }
 
 
@@ -226,21 +269,43 @@ async function handleRetryAll() : Promise<void> {
         onJobStarted={handleJobStarted}
         onJobCreated={setJobId}
         onFailedOrSucess={handleFailerAndSucess}
-        isGenerating={isGenerating}
+        isGenerating={isJobInProgress}
       />
 
       {/* Bottom Results Component (Appears when generating or when thumbnails exist) */}
       <ThumbnailResults
         data={data}
-        isGenerating={isGenerating}
+        isGenerating={isJobInProgress}
         isDeleting={isDeleting}
         resultStyles={resultStyles}
         generationError={generationError}
+        
+        cooldowns={cooldowns}
+        showCooldownMessage={showCooldownMessage}
+        cooldownSecondsRemaining={cooldownSecondsRemaining}
 
         onDelete={handleDelete}
         onDeleteAll={handleDeleteAll}
         onRetry={handleRetry}
         onRetryAll={handleRetryAll}
+      />
+
+      <ThumbnailDeleteDialog
+        open={pendingDelete !== null}
+        target={pendingDelete}
+        isPending={isDeleting}
+        isCooldownActive={pendingDelete?.kind === "all"
+          ? cooldowns.deleteAll.isActive
+          : cooldowns.deleteSingle.isActive}
+        error={deleteError}
+
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            setPendingDelete(null);
+            setDeleteError("");
+          }
+        }}
+        onConfirm={() => void confirmDelete()}
       />
 
   

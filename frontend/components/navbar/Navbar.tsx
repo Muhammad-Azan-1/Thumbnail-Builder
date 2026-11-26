@@ -97,6 +97,8 @@ const Navbar = () => {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+
+            
           ) : (
             <>
               <Link className={styles.navButton} href="/login">Login</Link>

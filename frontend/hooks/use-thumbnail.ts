@@ -15,6 +15,7 @@ export function useCreateJob(){
 }
 
 //* fetch thumbails for a job (runs on refresh only)
+// So when jobId exists and isGenerating is false, enabled becomes true; that allows a fetch on a cache miss, while a fresh cache hit is returned without fetching.
 export function useJobThumbnails(jobId:string , isGenerating : boolean = true){
     return useQuery({
         // 1. queryKey: Unique key to store & identify this data in TanStack cache                                              
@@ -42,9 +43,10 @@ export function useJobThumbnails(jobId:string , isGenerating : boolean = true){
         retry : 1,
 
       //7 It transforms the data before giving to the component
-      //   │ Yes! Every single time setQueryData is called, select runs before your component gets the data.                                                                          
+      //  Every single time setQueryData is called, select runs before your component gets the data.                                                                          
       select: (data): JobQueryData => ({
       ...data,
+      generating : data?.thumbnails.find((t:ThumbnailResponse) => t.status === "generating") ? true : false,
       ready: data?.thumbnails.filter((t:ThumbnailResponse) => t.status === "generated"),
       failed: data?.thumbnails.filter((t:ThumbnailResponse) => t.status === "failed"),
     }),
@@ -64,6 +66,7 @@ export function useJobThumbnails(jobId:string , isGenerating : boolean = true){
 //     { id: "1", status: "generated" },
 //     { id: "2", status: "failed" },
 //     { id: "3", status: "generated" },
+//     { id: "3", status: "generating" },
 //   ],
 // };
 

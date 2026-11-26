@@ -3,7 +3,6 @@ import { ArrowUpRight, RotateCcw, Trash2, AlertCircle } from "lucide-react";
 import styles from "./thumbnail-results.module.css";
 import { ThumbnailSkeleton } from "../../ui/thumbnail-skeleton/thumbnail-skeleton";
 import {  ThumbnailResponse} from "@/types/thumbnails";
-
 export default function ThumbnailResults({
   data,
   isGenerating,
@@ -14,15 +13,17 @@ export default function ThumbnailResults({
   onRetryAll,
   onDelete,
   onDeleteAll,
+
+  cooldowns,
+  showCooldownMessage,
+  cooldownSecondsRemaining,
 }: ThumbnailResultsProps) {
  
-
+  
   const readythumbnails :  ThumbnailResponse[]  = data?.ready || [];                                                
   const failedThumbnails :  ThumbnailResponse[] = data?.failed || [];  
   const stylesToRender = resultStyles.length > 0 ? resultStyles : data?.thumbnails.map((t : ThumbnailResponse) => t.style_name as StyleId); 
   const globalError = generationError || data?.error_message || "";
-  console.log("global error" , generationError)
-  console.log("data?.error_messager" , data?.error_message)
 
   const showResults =
     isGenerating ||
@@ -50,12 +51,12 @@ export default function ThumbnailResults({
             <div className={styles.resultsHeadingActions}>
               
               {/* retry all failed thumbnails */}
-              {failedThumbnails.length > 1 && onRetryAll && !isGenerating && (
+              {failedThumbnails.length > 0 && onRetryAll && !isGenerating && (
                 <button
                   type="button"
                   className={`${styles.retryAllButton} font-mono`}
                   onClick={onRetryAll}
-                  disabled={isDeleting}
+                  disabled={isDeleting || cooldowns.retryAll.isActive}
                 >
                   <RotateCcw aria-hidden="true" />
                   Retry all
@@ -68,7 +69,7 @@ export default function ThumbnailResults({
                   type="button"
                   className={`${styles.deleteAllButton} font-mono`}
                   onClick={onDeleteAll}
-                  disabled={isDeleting}
+                  disabled={isDeleting || cooldowns.deleteAll.isActive}
                   title="Delete all thumbnails"
                 >
                   <Trash2 aria-hidden="true" />
@@ -105,7 +106,7 @@ export default function ThumbnailResults({
                         <button
                           type="button"
                           onClick={() => onDelete(ready.id, styleId)}
-                          disabled={isDeleting || isGenerating}
+                          disabled={isDeleting || isGenerating || cooldowns.deleteSingle.isActive}
                           className={styles.thumbnailCardDeleteBtn}
                           aria-label={`Delete ${friendlyStyleName} thumbnail`}
                           title="Delete thumbnail"
@@ -157,7 +158,7 @@ export default function ThumbnailResults({
                         <button
                           type="button"
                           onClick={() => onDelete(failed.id, styleId!)}
-                          disabled={isDeleting || isGenerating}
+                          disabled={isDeleting || isGenerating || cooldowns.deleteSingle.isActive}
                           className={styles.failedThumbnailDismiss}
                           aria-label={`Delete failed ${friendlyStyleName} thumbnail`}
                           title="Remove failed thumbnail"
@@ -171,10 +172,13 @@ export default function ThumbnailResults({
                       <p className={`${styles.failedThumbnailMessage} font-mono`}>
                         {failed.error_message || "Generation failed"}
                       </p>
+
+
                       {onRetry && (
                         <button
                           type="button"
                           onClick={() => onRetry(styleId!)}
+                          disabled={isDeleting || cooldowns.retrySingle.isActive}
                           className={`${styles.failedThumbnailRetry} font-mono`}
                           aria-label={`Retry ${friendlyStyleName} thumbnail`}
                         >
@@ -182,14 +186,19 @@ export default function ThumbnailResults({
                           <span>Retry</span>
                         </button>
                       )}
+
+                      
                     </div>
                   </article>
                 );
               }
-
+              
               // 3. Generating State: Show Skeleton
-              if (!isGenerating) return null;
-
+              //* During initial generation, isGenerating keeps the slots visible. During concurrent retries,a thumbnail whose cached 
+              //* status is still "generating" keeps its own skeleton visible even after another retry sets the shared flag to false.
+              // && !generatingThumbnails
+              if (!isGenerating ) return null;
+              //  || generatingThumbnails
               return (
                 <div className={styles.thumbnailResultSlot} key={styleId}>
                   <ThumbnailSkeleton prompt={styleId!} isloading={isGenerating} duration={45000}  />
@@ -201,13 +210,24 @@ export default function ThumbnailResults({
           </div>
 
           {/* Global Top-Level Job Error */}
-          {globalError && (
+          {globalError && !isGenerating && !showCooldownMessage && (
             <div className={`${styles.resultError} font-mono font-bold`} role="alert">
               <AlertCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
               <span>{globalError}</span>
             </div>
           )}
         </section>
+      )}
+
+      {showCooldownMessage && (
+        <p className="auth-field-error" role="alert">
+          A rate limit is active. Only the affected actions are disabled.
+          {cooldownSecondsRemaining > 0 && (
+            <span>
+              {" "}All active cooldowns clear in {cooldownSecondsRemaining}s; some actions may be available sooner.
+            </span>
+          )}
+        </p>
       )}
 
       <p className={`${styles.footerNote} font-mono`}>

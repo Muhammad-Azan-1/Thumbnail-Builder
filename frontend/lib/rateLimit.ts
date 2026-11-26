@@ -19,7 +19,6 @@ export class RateLimitError extends Error {
     }
 }
 
-
 //* this function will return the remaning timer for the rate limit
 function parseRetryAfter(
     retryAfter: string | null,
@@ -50,6 +49,7 @@ function parseRetryAfter(
 }
 
 export function createRateLimitError(response: Response): RateLimitError {
+
     const scopeHeader = response.headers.get("X-RateLimit-Scope");
     const actionHeader = response.headers.get("X-RateLimit-Action")
     const coolDownStatus = response.headers.get("X-Cooldown-Status")
@@ -67,3 +67,9 @@ export function createRateLimitError(response: Response): RateLimitError {
         scope,
     );
 }
+
+
+
+// retryAfterSeconds is the wait duration parsed from the rate-limit response. retryAfterExpiresAt is the absolute time when that wait ends, calculated as Date.now() + retryAfterSeconds * 1000.
+
+// For example, if the server says “wait 30 seconds,” retryAfterSeconds is 30, and retryAfterExpiresAt is a timestamp 30 seconds in the future, in milliseconds. The timer uses the fixed expiry so rerendering doesn’t restart the full 30-second countdown.

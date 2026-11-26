@@ -1,4 +1,15 @@
 import { JobQueryData } from "./job";
+import type { CooldownTimerState } from './rateLimit'
+
+export type ThumbnailCooldownKey = "retrySingle" | "retryAll" | "deleteSingle" | "deleteAll";
+export type ThumbnailCooldowns = Record<ThumbnailCooldownKey, CooldownTimerState>;
+export type ThumbnailRateLimitErrors = Partial<
+  Record<ThumbnailCooldownKey, { retryAfterExpiresAt: number | undefined }>
+>;
+
+
+
+
 
 export type StyleId =
   | "bold_dramatic"
@@ -33,16 +44,15 @@ export interface ThumbnailBuilderProps {
   data?: JobQueryData
 }
 
-
 export interface ThumbnailResultsProps {
   isGenerating: boolean;
   isDeleting?: boolean;
   resultStyles: StyleId[];
   generationError: string;
-  // rateLimitError: RateLimitError | null;
-  // rateLimitSecondsRemaining: number | null;
-  // isRetryRateLimited: boolean;
-  // isDeleteRateLimited: boolean;
+  cooldowns: ThumbnailCooldowns;
+  showCooldownMessage: boolean;
+  cooldownSecondsRemaining: number;
+
   onRetry?: (styleId: string) => void;
   onRetryAll?: () => void;
   onDelete?: (thumbnailId: string, styleId?: string) => void;

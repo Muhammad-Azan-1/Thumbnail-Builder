@@ -6,6 +6,7 @@ import {
 } from "@/types/thumbnails";
 import { QueryClient } from "@tanstack/react-query";
 import { subscribeToJobStatus } from "./job";
+import type { JobResponse } from "@/types/job";
 
 export function startThumbnailJobStream({
   jobId,
@@ -30,6 +31,15 @@ export function startThumbnailJobStream({
     },
 
     onJobComplete: (data: JobCompletedPayload) => {
+      queryClient.setQueryData<JobResponse>(["thumbnails", jobId], (old) => {
+        if (!old) return old;
+
+        return {
+          ...old,
+          status: data.status,
+          error_message: data.job_error || null,
+        };
+      });
       onComplete?.(data);
     },
     onFailed: (error: FailedPayload) => {
@@ -49,12 +59,13 @@ function updateThumbnailInCache(
   jobId: string,
   data: ThumbnailReadyPayload | ThumbnailFailedPayload,
 ) {
-  queryClient.setQueryData(["thumbnails", jobId], (old: any) => {
-    const currentThumbnails: any[] = old?.thumbnails || [];
+  queryClient.setQueryData<JobResponse>(["thumbnails", jobId], (old) => {
+    // The create response or job query seeds the complete job before the stream starts.
+    if (!old) return old;
 
-    const exists = currentThumbnails.some((t) => t.id === data.id); 
-    const updatedThumbnails = exists ? currentThumbnails.map((t) => ( t.id === data.id ? { ...t, ...data } : t))
-      : [...currentThumbnails, data];
+    const updatedThumbnails = old.thumbnails.map((thumbnail) =>
+      thumbnail.id === data.id ? { ...thumbnail, ...data, job_id: jobId } : thumbnail,
+    );
 
     return {
       ...old,
@@ -66,8 +77,6 @@ function updateThumbnailInCache(
 
 
 //* how data stored in cache intially when arvied from the SSE direct connection vs 
-
-
 
 
 

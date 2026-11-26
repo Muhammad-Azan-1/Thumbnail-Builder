@@ -15,6 +15,8 @@ export const RATE_LIMIT_ACTIONS = {
     getJob: "GET /thumbnails/job/{job_id}",
     retryThumbnail: "POST /thumbnails/retry/thumbnail/{thumbnail_id}",
     retryJob: "POST /thumbnails/retry/job/{job_id}",
+    deleteJob: "DELETE /thumbnails/delete-batch",
+    deleteThumbnail: "DELETE /thumbnails/delete/{thumbnail_id}",
   },
 } as const;
 

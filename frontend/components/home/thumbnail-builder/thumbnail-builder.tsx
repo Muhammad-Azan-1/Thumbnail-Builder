@@ -36,14 +36,14 @@ export default function ThumbnailBuilder({
 
   //* cooldown timer and rate limiter setup
   const [cooldown, setCooldown] = useState<CooldownTimerState>({ isActive: false });
-  // const isRateLimited = error instanceof RateLimitError;
-  // const rateLimitError = isRateLimited ? error : null;
+
   
   //* local states
   const fileInputRef = useRef<HTMLInputElement>(null);
   const stylePickerRef = useRef<HTMLDivElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
+  const [existingHeadshotUrl, setExistingHeadshotUrl] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
   const [prompt, setPrompt] = useState("");
 
@@ -58,22 +58,16 @@ export default function ThumbnailBuilder({
   //* on full page refresh or when ever the jobData changes
 
   useEffect(() => {
-    if (!data) {
-      //* if when user select delete all thumbnails and we want to aslo remove the file and prompt and selected styles from the builder
-      setFile(null);
-      setPreviewUrl("");
-      setPrompt("");
-      setSelectedStyles([]);
-      return;
-    };
-
+    if(data){
     setSelectedStyles(
       data.thumbnails
         .map((thumbnail: ThumbnailResponse) => thumbnail.style_name)
         .filter((style): style is StyleId => Boolean(style)),
     );
     setPrompt(data.user_prompt ?? "");
+    setExistingHeadshotUrl(data.headshot_url ?? "");
     setPreviewUrl(data.headshot_url ?? "");
+  }
   }, [data]);
 
 
@@ -138,6 +132,7 @@ export default function ThumbnailBuilder({
     if (isGenerating) return;
     event.stopPropagation();
     setFile(null);
+    setExistingHeadshotUrl("");
     setShowValidation(false);
     setPreviewUrl((currentUrl) => {
       if (currentUrl) URL.revokeObjectURL(currentUrl);
@@ -168,36 +163,47 @@ export default function ThumbnailBuilder({
 
   //* main function which starts the image generation
   async function handleGenerate() :  Promise<void>  {
-    if (!file || !prompt.trim() || selectedStyles.length === 0) {
+    if ((!file && !existingHeadshotUrl) || !prompt.trim() || selectedStyles.length === 0) {
       setShowValidation(true);
       return;
     }
     setRateLimitError(null)
     onJobStarted(selectedStyles);
     try {
-      // 1. Upload headshot using TanStack Query mutation
-      const uploadResult = await uploadHeadshotAsync(file);
+      // Reuse the saved headshot after refresh unless the user picked a new file.
+      const headshotUrl = file
+        ? (await uploadHeadshotAsync(file)).headshot_url
+        : existingHeadshotUrl;
 
-      // 2. Create job using TanStack Query mutation
+      // Create the job with the selected or previously saved headshot.
       const jobResult = await createJobAsync({
         user_prompt: prompt,
-        headshot_url: uploadResult.headshot_url,
+        headshot_url: headshotUrl,
         styles: selectedStyles,
         num_of_thumbnails: selectedStyles.length,
       });
 
-      sessionStorage.setItem("jobId", jobResult.job_id);
-      onJobCreated(jobResult.job_id);
+      const createdJobId = jobResult.id;
+      queryClient.setQueryData(["thumbnails", createdJobId], jobResult);
+      sessionStorage.setItem("jobId", createdJobId);
+      onJobCreated(createdJobId);
+      setFile(null);
+
+      //*files setup
+      setExistingHeadshotUrl(jobResult.headshot_url);
+      if (previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(jobResult.headshot_url);
+      if (fileInputRef.current) fileInputRef.current.value = "";
 
       // 3. Subscribe to real-time status updates via SSE
       startThumbnailJobStream(
         {
-        jobId: jobResult?.job_id,
+        jobId: createdJobId,
         queryClient,
         
         onComplete : (data) => {
           if (data.status === "failed") {
-            onFailedOrSucess(data.job_error);
+            onFailedOrSucess(data.job_error || '');
           } else {
             onFailedOrSucess();
           }
@@ -239,7 +245,7 @@ export default function ThumbnailBuilder({
           <div
             className={`${styles.uploadZone} ${
               isDraggingFile ? styles.dragging : ""
-            } ${showValidation && !file ? "input-invalid" : ""} ${
+            } ${showValidation && !file && !existingHeadshotUrl ? "input-invalid" : ""} ${
               isGenerating ? styles.isDisabled : ""
             }`}
             aria-disabled={isGenerating}
@@ -399,7 +405,7 @@ export default function ThumbnailBuilder({
             Choose up to 3 styles. Each adds a different creative direction.
           </p>
           {showValidation &&
-            (!file || !prompt.trim() || selectedStyles.length === 0) && (
+            ((!file && !existingHeadshotUrl) || !prompt.trim() || selectedStyles.length === 0) && (
               <p className={`${styles.validationMessage} font-mono`} role="alert">
                 Add a headshot, description, and at least one style to continue.
               </p>
@@ -418,7 +424,7 @@ export default function ThumbnailBuilder({
         className={styles.generateButton}
         type="button"
         aria-disabled={
-          !file || !prompt.trim() || selectedStyles.length === 0 || isGenerating
+          (!file && !existingHeadshotUrl) || !prompt.trim() || selectedStyles.length === 0 || isGenerating
         }
         disabled={isGenerating || cooldown.isActive}
         onClick={handleGenerate}

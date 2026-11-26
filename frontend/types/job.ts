@@ -7,10 +7,6 @@ interface CreateJob {
   num_of_thumbnails: number;
 }
 
-interface CreateJobResponse {
-  job_id: string;
-}
-
 interface RetryThumbnailResponse {
   thumbnail_id: string;
   job_id: string;
@@ -24,17 +20,17 @@ interface JobResponse {
   num_of_thumbnails: number;
   headshot_url: string;
   created_at: string;
-  error_message?: string;
+  error_message?: string | null;
   thumbnails: ThumbnailResponse[];
 }
 
 interface JobQueryData extends JobResponse {
   ready: ThumbnailResponse[];
   failed: ThumbnailResponse[];
+  generating :boolean;
 }
 export type {
   CreateJob,
-  CreateJobResponse,
   RetryThumbnailResponse,
   JobResponse,
   JobQueryData,

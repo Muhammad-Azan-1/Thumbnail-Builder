@@ -31,6 +31,7 @@ async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
 
 
     response = _rate_limit_exceeded_handler(request, exc)
+
     scope = "application" if exc.limit.scope == "global" else "route"
     response.headers["X-RateLimit-Scope"] = scope
 
@@ -55,7 +56,7 @@ async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
 
     logger.info(f"Storing cooldown record for {identity} on {action} expires at {expires_at}")
     try:
-        await  rate_limiter_cooldown_store.record(
+        await rate_limiter_cooldown_store.record(
             identity=identity,
             scope=scope,
             action=action,

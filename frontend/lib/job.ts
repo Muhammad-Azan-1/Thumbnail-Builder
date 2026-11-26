@@ -1,5 +1,5 @@
 import { FETCH_API_METHOD } from "./client";
-import { CreateJob, CreateJobResponse, RetryThumbnailResponse  , JobResponse} from '../types/job'
+import { CreateJob, RetryThumbnailResponse  , JobResponse} from '../types/job'
 import {SSE_EVENTS} from '../types/SSE_Events'
 import {JobEventHandlers } from '../types/thumbnails'
 import type { UploadHeadshotResponse } from "@/types/upload";
@@ -16,8 +16,8 @@ export async function uploadHeadshot(file: File): Promise<UploadHeadshotResponse
 }
 
 // createjob -> call backend to create all thumbnails (which lies in that job)
-export async function createJob(data:CreateJob){
-    return await FETCH_API_METHOD<CreateJobResponse>(THUMBNAILS_API, "/job", {
+export async function createJob(data:CreateJob): Promise<JobResponse>{
+    return await FETCH_API_METHOD<JobResponse>(THUMBNAILS_API, "/job", {
     method : 'POST',
     body : JSON.stringify(data)
     } )
