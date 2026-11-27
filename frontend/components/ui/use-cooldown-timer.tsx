@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCooldown } from "@/hooks/use-cooldown";
-import {UseCooldownTimerProps} from '@/types/rateLimit'
+import type { CooldownStatus, UseCooldownTimerProps } from "@/types/rateLimit";
 
+const EMPTY_COOLDOWNS: CooldownStatus[] = [];
 
 
 export default function CooldownTimer({
@@ -12,10 +14,11 @@ export default function CooldownTimer({
   retryAfterExpiresAt,
   onCooldownChange,
 }: UseCooldownTimerProps) {
+  const queryClient = useQueryClient();
 
   console.log("Function Cool Down Timer Get Called")
   // Fetch active cooldown records saved by the backend.
-  const {data: cooldowns = [],isError: isCooldownStatusError, error: cooldownStatusError,} = useCooldown();
+  const {data: cooldowns = EMPTY_COOLDOWNS,isError: isCooldownStatusError, error: cooldownStatusError,} = useCooldown();
 
   console.log(cooldowns , "DATA")
   // Read the current time on each render to avoid using a stale time when a cooldown starts.
@@ -64,6 +67,24 @@ export default function CooldownTimer({
   const isApplicationCooldownActive = Math.ceil((validApplicationExpiry - now) / 1000) > 0;
 
   useEffect(() => {
+
+     const current =  queryClient.getQueryData<CooldownStatus[]>(["cooldown"])
+     if(!current) return
+
+     const unexpired = current.filter((record)=>{
+        const expirey = Date.parse(record.expires_at)
+        return Number.isFinite(expirey) && expirey > now
+     })
+
+     if(unexpired.length !== current.length){
+        queryClient.setQueryData<CooldownStatus[]>(["cooldown"], unexpired)
+     }
+
+  }, [cooldowns, isActive, queryClient]);
+
+
+  
+  useEffect(() => {
     if (!isActive) return;
 
     // Trigger a render each second while counting down, then clear the interval.
@@ -72,6 +93,7 @@ export default function CooldownTimer({
     }, 1000);
     return () => window.clearInterval(intervalId);
   }, [expiresAt, isActive]);
+
 
 
   useEffect(() => {

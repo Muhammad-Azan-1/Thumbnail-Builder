@@ -50,7 +50,7 @@ async def verify_email(request: Request, response: Response, verification_data: 
 
 
 @router.post("/login" , response_model=ApiResponse[LoginUserResponse])
-@limiter.limit("10/minute", key_func=get_remote_address)
+@limiter.limit("2/minute", key_func=get_remote_address)
 async def login(request: Request, user_data : UserLoginRequest ,  response: Response , session : AsyncSession = Depends(get_async_session)):
 
     result = await AuthService.login_user(user_data , session)

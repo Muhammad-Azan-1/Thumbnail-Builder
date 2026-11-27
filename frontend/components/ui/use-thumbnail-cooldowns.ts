@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { RATE_LIMIT_ACTIONS } from "@/constants";
 import { useCooldown } from "@/hooks/use-cooldown";
+import type { CooldownStatus } from "@/types/rateLimit";
 import type {
   ThumbnailCooldownKey,
   ThumbnailCooldowns,
   ThumbnailRateLimitErrors,
 } from "@/types/props";
+
+const EMPTY_COOLDOWNS: CooldownStatus[] = [];
 
 const COOLDOWN_ACTIONS: Record<ThumbnailCooldownKey, string> = {
   retrySingle: RATE_LIMIT_ACTIONS.thumbnails.retryThumbnail,
@@ -17,7 +21,8 @@ const COOLDOWN_ACTIONS: Record<ThumbnailCooldownKey, string> = {
 export function useThumbnailCooldowns(
   rateLimitErrors: ThumbnailRateLimitErrors,
 ) {
-  const { data: records = [] } = useCooldown();
+  const queryClient = useQueryClient();
+  const { data: records = EMPTY_COOLDOWNS } = useCooldown();
   const [now, setNow] = useState(() => Date.now());
 
   const applicationExpiry = Math.max(
@@ -60,6 +65,12 @@ export function useThumbnailCooldowns(
     ]),
   ) as ThumbnailCooldowns;
 
+  const activeCooldownKeys = Object.entries(cooldowns)
+    .filter(([, cooldown]) => cooldown.isActive)
+    .map(([key]) => key)
+    .join("|");
+
+
   const latestExpiry = Math.max(0, ...Object.values(expiryByAction));
   const hasUnexpiredRateLimitError = Object.values(rateLimitErrors).some(
     (error) =>
@@ -75,6 +86,27 @@ export function useThumbnailCooldowns(
     const intervalId = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(intervalId);
   }, [isActive]);
+
+
+
+  //*
+  useEffect(() => {
+    // Remove expired records while preserving cooldowns still active elsewhere.
+     const current =  queryClient.getQueryData<typeof records>(["cooldown"])
+     if(!current) return
+
+     const unexpired = current.filter((record)=>{
+        const expirey = Date.parse(record.expires_at)
+        return Number.isFinite(expirey) && expirey > now
+     })
+
+     if(unexpired.length !== current.length){
+        queryClient.setQueryData<typeof records>(["cooldown"], unexpired)
+     }
+
+
+  }, [activeCooldownKeys, queryClient, records]);
+  
 
   return {
     cooldowns,

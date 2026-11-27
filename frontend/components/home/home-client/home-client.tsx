@@ -34,7 +34,7 @@ export default function HomeClient() {
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [deleteError, setDeleteError] = useState("");
 
-  
+  //* rate limiter setup for thumbnail result components (delete , edit , etc buttons)
   const [rateLimitErrors, setRateLimitErrors] = useState<ThumbnailRateLimitErrors>({});
   const { cooldowns, showMessage: showCooldownMessage, secondsRemaining: cooldownSecondsRemaining } = useThumbnailCooldowns(rateLimitErrors);
 
